@@ -109,7 +109,7 @@ export default function Scene() {
 
       <CameraRig />
 
-      {tier.post && <Effects smaa={tier.smaa} dof={tier.dof} vignette={dark ? 0.55 : 0.3} />}
+      {tier.post && <Effects smaa={tier.smaa} dof={tier.dof} vignette={dark ? 0.55 : 0.3} bloomThreshold={set === 'glacier' ? 1.6 : 1} />}
     </Canvas>
   )
 }

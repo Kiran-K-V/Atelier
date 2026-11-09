@@ -10,13 +10,15 @@ interface EffectsProps {
   /** Depth of field on the mated king (high tier). */
   readonly dof: boolean
   readonly vignette: number
+  /** HDR level above which pixels glow. Bright board surfaces must stay below it; effects sit well above. */
+  readonly bloomThreshold: number
 }
 
 const MATE_VIGNETTE = 0.35
 const MATE_BOKEH = 3.5
 
 /** Post chain. Vignette deepens and, when allowed, depth of field settles on the king as the mate mood blends in. */
-export function Effects({ smaa, dof, vignette }: EffectsProps) {
+export function Effects({ smaa, dof, vignette, bloomThreshold }: EffectsProps) {
   const mood = useMood((s) => s.mood)
   const square = useMood((s) => s.square)
   const vignetteRef = useRef<VignetteEffect>(null)
@@ -39,7 +41,7 @@ export function Effects({ smaa, dof, vignette }: EffectsProps) {
   return (
     <EffectComposer multisampling={0}>
       {dof && dofOn && focus ? <DepthOfField ref={dofRef} target={focus} worldFocusRange={2.4} bokehScale={0} /> : <></>}
-      <Bloom mipmapBlur luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.6} />
+      <Bloom mipmapBlur luminanceThreshold={bloomThreshold} luminanceSmoothing={0.2} intensity={0.6} />
       {/* The composer bypasses renderer tone mapping; without this, post tiers would not match the low tier. */}
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       <Vignette ref={vignetteRef} offset={0.3} darkness={vignette} />
