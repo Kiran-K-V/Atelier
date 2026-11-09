@@ -87,8 +87,8 @@ export default function Scene() {
         gl.toneMappingExposure = 1.05
         // The slice capture cuts pieces with clipping planes.
         gl.localClippingEnabled = true
-        // Glass refraction samples a blurred copy of the scene; half resolution is indistinguishable and halves its cost.
-        gl.transmissionResolutionScale = 0.5
+        // Full resolution keeps the ice inside the glass tiles crisp.
+        gl.transmissionResolutionScale = 1
       }}
     >
       <color attach="background" args={[room]} />

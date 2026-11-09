@@ -147,17 +147,17 @@ function glacier(transmission: boolean): SetSpec {
       squareDark: transmission
         ? {
             color: '#eef4fb',
-            roughness: 0.03,
+            roughness: 0,
             transmission: 1,
             thickness: TRAY_DEPTH,
             ior: 1.5,
-            attenuationColor: '#4a78b4',
-            attenuationDistance: 1.1,
+            attenuationColor: '#1f5bc4',
+            attenuationDistance: 0.85,
             clearcoat: 1,
             clearcoatRoughness: 0.01,
           }
         : {
-            color: '#3b6796',
+            color: '#1f4a86',
             roughness: 0.05,
             clearcoat: 1,
             clearcoatRoughness: 0.01,

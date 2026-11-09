@@ -4,7 +4,7 @@ import { ALL_SQUARES, isLightSquare, squareToPosition } from '../coords'
 import { TRAY_DEPTH } from '../materials'
 import { mulberry32 } from '../materials/marble'
 
-const PER_SQUARE = 5
+const PER_SQUARE = 3
 /** Shards stay inside their tile, clear of the tile walls, the top face and the floor. */
 const SPREAD = 0.34
 const TOP = -0.06
@@ -22,7 +22,7 @@ function layout(): THREE.Matrix4[] {
     const [x, , z] = squareToPosition(sq)
     for (let i = 0; i < PER_SQUARE; i++) {
       // Flat, splintered flakes: one long axis, one thin axis.
-      const size = 0.05 + rand() * 0.09
+      const size = 0.03 + rand() * 0.05
       const scale = new THREE.Vector3(size * (1.2 + rand()), size * (0.18 + rand() * 0.25), size * (0.6 + rand() * 0.6))
       const pos = new THREE.Vector3(x + (rand() * 2 - 1) * SPREAD, BOTTOM + rand() * (TOP - BOTTOM), z + (rand() * 2 - 1) * SPREAD)
       q.setFromEuler(e.set(rand() * Math.PI, rand() * Math.PI, rand() * Math.PI))

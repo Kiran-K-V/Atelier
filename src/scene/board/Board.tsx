@@ -319,7 +319,7 @@ export function Board({ room, dark }: { room: string; dark: boolean }) {
           {/* Tray floor under the blocks: what the glass tiles look down onto. */}
           <mesh position={[0, -TRAY_DEPTH + 0.002, 0]} rotation-x={-Math.PI / 2} raycast={() => undefined}>
             <planeGeometry args={[8.14, 8.14]} />
-            <meshBasicMaterial color="#163a63" />
+            <meshBasicMaterial color="#0f3f8c" />
           </mesh>
           <TrappedIce />
         </>
