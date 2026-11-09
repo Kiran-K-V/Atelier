@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { safeStorage } from './storage'
 import type { QualityTier, SettingsActions, SettingsState, ThemePreference } from './types'
 
 const REDUCE_QUERY = '(prefers-reduced-motion: reduce)'
@@ -11,31 +12,6 @@ type Persisted = Pick<SettingsState, 'theme' | 'quality' | 'qualityAuto' | 'redu
 const canMatchMedia = (): boolean => typeof window !== 'undefined' && typeof window.matchMedia === 'function'
 
 const systemPrefersReducedMotion = (): boolean => canMatchMedia() && window.matchMedia(REDUCE_QUERY).matches
-
-// Storage throws in private mode, with blocked site data, and in the node test env.
-const safeStorage: StateStorage = {
-  getItem: (key) => {
-    try {
-      return localStorage.getItem(key)
-    } catch {
-      return null
-    }
-  },
-  setItem: (key, value) => {
-    try {
-      localStorage.setItem(key, value)
-    } catch {
-      // Settings still work for this session.
-    }
-  },
-  removeItem: (key) => {
-    try {
-      localStorage.removeItem(key)
-    } catch {
-      // Nothing to remove.
-    }
-  },
-}
 
 const isOneOf = <T extends string>(list: readonly T[], value: unknown): value is T => list.includes(value as T)
 

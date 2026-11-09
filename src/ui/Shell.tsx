@@ -6,7 +6,7 @@ import { useKeyboardPlay } from './a11y/useKeyboardPlay'
 import { GameOverOverlay } from './GameOverOverlay'
 import { GamePanel } from './panel/GamePanel'
 import { PromotionPicker } from './PromotionPicker'
-import { Wordmark } from './Wordmark'
+import { PlayWordmark } from './Wordmark'
 import './ui.css'
 
 interface ShellProps {
@@ -31,7 +31,7 @@ export function Shell({ board }: ShellProps) {
           >
             {board}
           </div>
-          <Wordmark />
+          <PlayWordmark />
           <PromotionPicker />
           <GameOverOverlay />
         </main>

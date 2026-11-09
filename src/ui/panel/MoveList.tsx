@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { Link } from 'wouter'
+import { curriculum } from '../../academy/curriculum'
 import { TACTIC_NAME } from '../../rules/tacticNames'
-import type { PlayedMove } from '../../rules/types'
+import type { PlayedMove, TacticKind } from '../../rules/types'
 import { useGame } from '../../store/game'
 import { useSettings } from '../../store/settings'
 
@@ -19,6 +21,19 @@ function pairUp(history: readonly PlayedMove[]): Pair[] {
   return pairs
 }
 
+const TAG_CLASS = 'min-w-0 truncate font-mono text-[0.625rem] uppercase tracking-[0.08em] text-accent-strong'
+
+/** The tactic name; a link to its Academy skill when the curriculum teaches it. */
+function TacticTag({ kind }: { kind: TacticKind }) {
+  const skill = curriculum.skills.find((s) => s.tactic === kind)
+  if (!skill) return <span className={TAG_CLASS}>{TACTIC_NAME[kind]}</span>
+  return (
+    <Link href={`/academy/${skill.id}`} title={`Learn: ${skill.title}`} className={`${TAG_CLASS} no-underline hover:underline focus-visible:underline`}>
+      {TACTIC_NAME[kind]}
+    </Link>
+  )
+}
+
 function MoveCell({ move, current }: { move: PlayedMove | undefined; current: boolean }) {
   if (!move) return <span />
   const primary = move.tactics[0]
@@ -29,7 +44,7 @@ function MoveCell({ move, current }: { move: PlayedMove | undefined; current: bo
       className={`flex min-w-16 max-w-full items-baseline gap-1.5 justify-self-start rounded-xs px-2 py-1 ${current ? 'bg-surface3 text-text shadow-[inset_2px_0_0_var(--color-accent)]' : 'text-text'}`}
     >
       <span className="shrink-0">{move.san}</span>
-      {primary && <span className="min-w-0 truncate font-mono text-[0.625rem] uppercase tracking-[0.08em] text-accent-strong">{TACTIC_NAME[primary.kind]}</span>}
+      {primary && <TacticTag kind={primary.kind} />}
     </span>
   )
 }
