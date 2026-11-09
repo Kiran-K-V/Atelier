@@ -260,7 +260,7 @@ function useBoardRipple(): void {
 
 /** Planar reflection per tier (an extra scene render, refreshed every `interval` frames); null is off. */
 const REFLECTION: Record<QualityTier, { resolution: number; interval: number } | null> = {
-  high: { resolution: 256, interval: 2 },
+  high: { resolution: 512, interval: 2 },
   medium: { resolution: 256, interval: 3 },
   low: null,
 }

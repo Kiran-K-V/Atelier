@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js'
 import { ALL_SQUARES, isLightSquare, squareToPosition } from '../coords'
+import { materials } from '../materials'
 
 /** The effects layer: the main camera sees it; contact shadows, the pointer and the mirror camera do not. */
 const FX_LAYER = 1
@@ -77,9 +78,10 @@ function maskTexture(): THREE.CanvasTexture {
 }
 
 /**
- * The mirror pass re-renders the scene, including the glass pieces' own transmission pass, so it
- * refreshes every `interval` frames. The board is mostly still; a frame of lag in a soft
- * reflection is not visible.
+ * The mirror pass re-renders the scene, so it refreshes every `interval` frames (the board is
+ * mostly still; a frame of lag in a soft reflection is not visible), and it draws the glass
+ * without transmission: a refraction inside a blurred reflection is invisible, but its extra
+ * scene pass would double the mirror's cost.
  */
 export function GlassReflection({ resolution, interval }: { resolution: number; interval: number }) {
   const reflector = useMemo(() => {
@@ -101,9 +103,20 @@ export function GlassReflection({ resolution, interval }: { resolution: number; 
     r.layers.set(FX_LAYER)
     r.raycast = () => undefined
     const mirror = r.onBeforeRender.bind(r)
+    const m3 = materials()
+    const glass = [m3.pieceLight, m3.pieceDark, m3.frame]
+    const saved = glass.map(() => 0)
     let frame = 0
     r.onBeforeRender = (...args) => {
-      if (frame++ % interval === 0) mirror(...args)
+      if (frame++ % interval !== 0) return
+      glass.forEach((g, i) => {
+        saved[i] = g.transmission
+        g.transmission = 0
+      })
+      mirror(...args)
+      glass.forEach((g, i) => {
+        g.transmission = saved[i]
+      })
     }
     return r
   }, [resolution, interval])

@@ -136,7 +136,7 @@ export const sceneSets: Record<BoardSet, SceneColors> = {
     pieceLight: '#f7fafc',
     pieceDark: '#0b4f7a',
     legal: '#8be9ff',
-    marker: '#46dcff',
+    marker: '#1f9dff',
     selected: '#b8f3ff',
     lastMove: '#4fd2ea',
     check: '#ff6b5a',
