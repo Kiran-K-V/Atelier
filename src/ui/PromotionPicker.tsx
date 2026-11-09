@@ -59,7 +59,7 @@ function PromotionDialog() {
         initial={{ y: 12, scale: 0.98 }}
         animate={{ y: 0, scale: 1, transition: { duration: sec('slow'), ease: bezier('enter') } }}
         exit={{ y: 6, transition: { duration: sec('fast'), ease: bezier('exit') } }}
-        className="glass max-w-full rounded-xs border border-line-strong bg-surface p-5 shadow-lg outline-none"
+        className="glass max-w-full rounded-md border border-line-strong bg-surface p-5 shadow-lg outline-none"
       >
         <p className={`${labelClass} m-0 mb-4`}>Promote to</p>
         <div className="grid grid-cols-4 gap-2 sm:gap-3">
@@ -70,7 +70,7 @@ function PromotionDialog() {
               data-autofocus={i === 0 ? '' : undefined}
               aria-label={name}
               onClick={() => choosePromotion(piece)}
-              className="group flex size-[4.25rem] flex-col items-center justify-center gap-1 rounded-xs border border-line text-text transition-[background-color,border-color,transform] duration-fast ease-standard hover:border-accent hover:bg-surface2 active:scale-[0.97] active:bg-surface3 sm:size-24"
+              className="group flex size-[4.25rem] flex-col items-center justify-center gap-1 rounded-sm border border-line text-text transition-[background-color,border-color,transform] duration-fast ease-standard hover:border-accent hover:bg-surface2 active:scale-[0.97] active:bg-surface3 sm:size-24"
             >
               <span aria-hidden className="font-display text-4xl leading-none sm:text-5xl">
                 {glyph(color, piece)}

@@ -22,7 +22,7 @@ export function Segmented<T extends string>({ legend, options, value, onChange, 
   return (
     <fieldset className="m-0 min-w-0 border-0 p-0">
       <legend className={`${labelClass} mb-2.5 p-0`}>{legend}</legend>
-      <div className={`grid ${COLUMNS[columns]} gap-px overflow-hidden rounded-xs border border-line bg-line`}>
+      <div className={`grid ${COLUMNS[columns]} gap-px overflow-hidden rounded-sm border border-line bg-line`}>
         {options.map((o) => (
           <label
             key={o.value}

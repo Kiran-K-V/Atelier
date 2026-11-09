@@ -20,7 +20,8 @@ export function Shell({ board }: ShellProps) {
   return (
     <MotionConfig reducedMotion={reducedMotion ? 'always' : 'never'}>
       <div className="flex h-dvh w-full flex-col overflow-hidden bg-bg app-bg text-text lg:flex-row">
-        {/* Explicit height on phones, flex fill on desktop: the canvas needs a sized parent. */}
+        {/* Explicit height on phones, flex fill on desktop: the canvas needs a sized parent.
+            On phones the panel below overlaps the board's empty bottom edge by 12px, like a sheet. */}
         <main className="relative h-[60dvh] min-h-0 w-full shrink-0 lg:h-auto lg:min-w-0 lg:flex-1 lg:shrink">
           <div
             tabIndex={0}
@@ -37,7 +38,7 @@ export function Shell({ board }: ShellProps) {
         </main>
         <aside
           aria-label="Game"
-          className="glass atelier-scroll min-h-0 w-full flex-1 overflow-y-auto border-t border-line bg-surface lg:w-[360px] lg:flex-none lg:border-l lg:border-t-0"
+          className="glass atelier-scroll relative z-10 -mt-3 min-h-0 w-full flex-1 overflow-y-auto rounded-t-md border-t border-line-strong bg-surface shadow-lg lg:my-4 lg:mr-4 lg:mt-4 lg:w-[372px] lg:flex-none lg:rounded-md lg:border"
         >
           <GamePanel />
         </aside>

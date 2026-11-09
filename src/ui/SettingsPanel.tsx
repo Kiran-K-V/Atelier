@@ -1,8 +1,11 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { BoardSet } from '../design/tokens'
 import { useSettings } from '../store/settings'
 import type { QualityTier, ThemePreference } from '../store/types'
+import { Button } from './Button'
+import { CloseIcon, GearIcon } from './icons'
 import { bezier, sec } from './motionTokens'
 import { Segmented } from './Segmented'
 import { labelClass } from './styles'
@@ -45,28 +48,6 @@ const TACTICS: readonly { value: TacticsChoice; label: string }[] = [
 const motionChoice = (user: boolean | null): MotionChoice => (user === null ? 'system' : user ? 'on' : 'off')
 const motionValue = (choice: MotionChoice): boolean | null => (choice === 'system' ? null : choice === 'on')
 
-// Eight spokes around a ring: a gear drawn with plain strokes.
-function GearIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden>
-      <circle cx="12" cy="12" r="3" />
-      <circle cx="12" cy="12" r="7" />
-      <path d="M19 12h2.5M16.95 16.95l1.77 1.77M12 19v2.5M7.05 16.95l-1.77 1.77M5 12H2.5M7.05 7.05 5.28 5.28M12 5V2.5M16.95 7.05l1.77-1.77" />
-    </svg>
-  )
-}
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden>
-      <path d="M6 6l12 12M18 6 6 18" />
-    </svg>
-  )
-}
-
-const iconButton =
-  'grid size-11 place-items-center rounded-xs text-text-muted transition-colors duration-fast ease-standard hover:bg-surface2 hover:text-text active:bg-surface3'
-
 function SettingsDialog({ onClose }: { onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
   useFocusTrap(ref, onClose)
@@ -90,13 +71,11 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
         initial={{ y: 16 }}
         animate={{ y: 0, transition: enter }}
         exit={{ y: 8, transition: { duration: sec('fast'), ease: bezier('exit') } }}
-        className="glass absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col gap-6 overflow-y-auto border-t border-line-strong bg-surface2 px-4 pb-6 pt-3 shadow-lg outline-none lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-16 lg:w-80 lg:rounded-xs lg:border lg:px-5 lg:pt-3"
+        className="glass absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col gap-6 overflow-y-auto rounded-t-md border-t border-line-strong bg-surface2 px-4 pb-6 pt-3 shadow-lg outline-none lg:inset-x-auto lg:bottom-auto lg:right-8 lg:top-[5.5rem] lg:w-80 lg:rounded-md lg:border lg:px-5 lg:pt-3"
       >
         <div className="flex items-center justify-between">
           <h2 className="atelier-display m-0 text-xl font-light text-text">Settings</h2>
-          <button type="button" aria-label="Close settings" onClick={onClose} className={iconButton}>
-            <CloseIcon />
-          </button>
+          <Button variant="ghost" iconOnly aria-label="Close settings" onClick={onClose} className="-mr-2" icon={<CloseIcon />} />
         </div>
         <Segmented legend="Board set" columns={2} options={SETS} value={s.boardSet} onChange={s.setBoardSet} />
         <Segmented legend="Theme" columns={3} options={THEMES} value={s.theme} onChange={s.setTheme} />
@@ -148,18 +127,18 @@ export function SettingsPanel() {
 
   return (
     <>
-      <button
+      <Button
         ref={trigger}
-        type="button"
+        iconOnly
         aria-label="Settings"
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => (open ? close() : setOpen(true))}
-        className={`-mr-3 ${iconButton}`}
-      >
-        <GearIcon />
-      </button>
-      <AnimatePresence>{open && <SettingsDialog onClose={close} />}</AnimatePresence>
+        className="shrink-0 text-text-muted enabled:hover:text-text"
+        icon={<GearIcon />}
+      />
+      {/* Portalled to body: the glass panel's backdrop-filter would otherwise trap this fixed layer inside the panel. */}
+      {createPortal(<AnimatePresence>{open && <SettingsDialog onClose={close} />}</AnimatePresence>, document.body)}
     </>
   )
 }

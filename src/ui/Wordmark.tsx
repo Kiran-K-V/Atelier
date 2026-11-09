@@ -1,25 +1,17 @@
-import { labelClass } from './styles'
 import { SiteNav } from './SiteNav'
 
-/** Brand lockup. Used inline in the Academy header. */
-export function Wordmark() {
-  return (
-    <div className="flex items-baseline gap-3">
-      <span className="atelier-wordmark text-3xl font-normal leading-none text-text">Atelier</span>
-      <span className={`${labelClass} border-l border-line-strong pl-3`}>Chess</span>
-    </div>
-  )
+/** Brand name. One type treatment: the display serif. Its 40px line box matches the nav height. */
+export function Wordmark({ as: Tag = 'span' }: { readonly as?: 'span' | 'h1' }) {
+  return <Tag className="atelier-wordmark m-0 text-[2.125rem] font-normal leading-10 text-text lg:text-[2.375rem]">Atelier</Tag>
 }
 
-/** Play page lockup: the heading over the board, with the Play/Academy switch beside it. */
+/** Play page header over the board: wordmark and nav share one 40px row, split by a hairline. */
 export function PlayWordmark() {
   return (
-    <div className="pointer-events-none absolute left-4 top-4 z-10 flex flex-col gap-3 lg:left-8 lg:top-7 lg:flex-row lg:items-baseline lg:gap-6">
-      <div className="flex items-baseline gap-3">
-        <h1 className="atelier-wordmark m-0 text-3xl font-normal leading-none text-text lg:text-5xl">Atelier</h1>
-        <span className={`${labelClass} border-l border-line-strong pl-3`}>Chess</span>
-      </div>
-      <SiteNav className="pointer-events-auto self-start" />
+    <div className="pointer-events-none absolute inset-x-4 top-3 z-10 flex items-center gap-4 lg:left-8 lg:right-auto lg:top-6 lg:gap-5">
+      <Wordmark as="h1" />
+      <span aria-hidden className="h-6 w-px bg-line-strong" />
+      <SiteNav className="pointer-events-auto" />
     </div>
   )
 }
