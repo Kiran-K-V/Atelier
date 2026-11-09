@@ -47,11 +47,13 @@ const CARDS: Record<BoardSet, readonly Card[]> = {
     { form: 'ring', intensity: 1.5, color: '#ffffff', position: [0, 4, 8], rotation: [0, 0, 0], scale: 3 },
   ],
   glacier: [
-    { form: 'rect', intensity: 3.2, color: '#f2f8ff', position: [0, 6, 0], rotation: [Math.PI / 2, 0, 0], scale: [10, 6, 1] },
-    { form: 'rect', intensity: 0.45, color: '#cfe4ff', position: [-6, 3, 2], rotation: [0, Math.PI / 2, 0], scale: [8, 3, 1] },
-    { form: 'rect', intensity: 2.6, color: '#6fe2ff', position: [6, 2, -3], rotation: [0, -Math.PI / 2, 0], scale: [8, 2, 1] },
-    { form: 'rect', intensity: 1.6, color: '#bfe8ff', position: [-4, 1.5, -6], rotation: [0, Math.PI / 4, 0], scale: [6, 1, 1] },
-    { form: 'ring', intensity: 1.8, color: '#ffffff', position: [0, 4, 8], rotation: [0, 0, 0], scale: 3 },
+    { form: 'rect', intensity: 3, color: '#f2f8fb', position: [0, 6, 0], rotation: [Math.PI / 2, 0, 0], scale: [10, 6, 1] },
+    { form: 'rect', intensity: 0.4, color: '#d6e6ee', position: [-6, 3, 2], rotation: [0, Math.PI / 2, 0], scale: [8, 3, 1] },
+    { form: 'rect', intensity: 1.8, color: '#a9d6e6', position: [6, 2, -3], rotation: [0, -Math.PI / 2, 0], scale: [8, 2, 1] },
+    // Narrow tall strips: crisp vertical highlight lines down the glass pieces' edges.
+    { form: 'rect', intensity: 4, color: '#ffffff', position: [-5, 2.5, -3], rotation: [0, Math.PI / 3, 0], scale: [0.35, 5, 1] },
+    { form: 'rect', intensity: 3, color: '#e6f4fa', position: [5, 2.5, 4], rotation: [0, -Math.PI * 0.7, 0], scale: [0.35, 5, 1] },
+    { form: 'ring', intensity: 1.6, color: '#ffffff', position: [0, 4, 8], rotation: [0, 0, 0], scale: 3 },
   ],
 }
 

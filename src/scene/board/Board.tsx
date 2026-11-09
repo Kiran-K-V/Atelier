@@ -1,7 +1,7 @@
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
-import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { useGame } from '../../store/game'
 import { useSettings } from '../../store/settings'
 import { fxBus } from '../choreo/bus'
@@ -22,17 +22,22 @@ const FRAME_BEVEL = 0.03
 const INLAY = [4.17, 4.2] as const
 const LABEL_BAND = [4.22, 4.75] as const
 export const TABLE_Y = FRAME_TOP - FRAME_DEPTH - 2 * FRAME_BEVEL
+const SLAB = 0.04
+/** Glacier light squares: a thin frosted slab over a dark core, so its bright side wall stays a hairline. */
+const FROST = 0.012
+/** Glacier floor: far larger than the view, so its edge never shows; fog finishes the fade. */
+const FLOOR_SIZE = 240
 
 /**
  * Each square samples its own rotated window of its texture, so no two squares repeat. Tiles are
- * 0.04 slabs (atelier) or full-depth blocks down to the tray floor (glacier), top face at y = 0.
+ * slabs whose top face sits at `top` (y = 0 for the playing surface).
  */
-function squaresGeometry(light: boolean, height = 0.04): THREE.BufferGeometry {
+function squaresGeometry(light: boolean, height = SLAB, top = 0): THREE.BufferGeometry {
   const rand = mulberry32(light ? 7 : 13)
   const parts = ALL_SQUARES.filter((sq) => isLightSquare(sq) === light).map((sq) => {
     const g = new THREE.BoxGeometry(0.994, height, 0.994)
     const [x, , z] = squareToPosition(sq)
-    g.translate(x, -height / 2, z)
+    g.translate(x, top - height / 2, z)
     const center = new Float32Array(g.getAttribute('position').count * 2)
     for (let i = 0; i < center.length; i += 2) {
       center[i] = x
@@ -93,63 +98,6 @@ function frameGeometry(): THREE.BufferGeometry {
     curveSegments: 8,
   })
   return flat(g, FRAME_TOP - FRAME_DEPTH - FRAME_BEVEL)
-}
-
-const ICE_BEVEL = 0.07
-
-/** Smooth closed noise along the frame's perimeter: a few sines with seeded phases. */
-function swell(t: number, phases: readonly number[]): number {
-  let v = 0
-  phases.forEach((p, i) => {
-    const f = [5, 11, 23, 37][i]
-    v += Math.sin(t * Math.PI * 2 * f + p) / (i + 1.4)
-  })
-  return v
-}
-
-/**
- * Glacier frame: the same ring, but the outer edge is molten ice. Its outline bulges in and out,
- * its top swells near the edge, and normals are smoothed so the ripples catch highlights.
- */
-function iceFrameGeometry(): THREE.BufferGeometry {
-  const rand = mulberry32(31)
-  const phases = [0, 0, 0, 0].map(() => rand() * Math.PI * 2)
-  const lift = [0, 0, 0, 0].map(() => rand() * Math.PI * 2)
-  const base = squarePath(new THREE.Path(), FRAME_OUTER - 0.06, 0.3).getSpacedPoints(720)
-  base.pop()
-  const outline = base.map((p, i) => {
-    const t = i / base.length
-    const len = Math.hypot(p.x, p.y)
-    const k = 1 + (0.035 * swell(t, phases)) / len
-    return new THREE.Vector2(p.x * k, p.y * k)
-  })
-  const shape = new THREE.Shape(outline)
-  shape.holes.push(squarePath(new THREE.Path(), FRAME_INNER, 0.14))
-  const g = new THREE.ExtrudeGeometry(shape, {
-    depth: FRAME_DEPTH,
-    bevelEnabled: true,
-    bevelThickness: ICE_BEVEL,
-    bevelSize: ICE_BEVEL,
-    bevelSegments: 6,
-    curveSegments: 8,
-  })
-  g.deleteAttribute('normal')
-  g.deleteAttribute('uv')
-  const welded = mergeVertices(g, 1e-4)
-  flat(welded, FRAME_TOP - FRAME_DEPTH - ICE_BEVEL)
-  // Swell the top toward the outer edge, never over the label band.
-  const pos = welded.getAttribute('position')
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i)
-    const z = pos.getZ(i)
-    const y = pos.getY(i)
-    const edge = THREE.MathUtils.smoothstep(Math.max(Math.abs(x), Math.abs(z)), LABEL_BAND[1], FRAME_OUTER + 0.05)
-    const up = THREE.MathUtils.smoothstep(y, TABLE_Y, FRAME_TOP)
-    const t = (Math.atan2(z, x) / (Math.PI * 2) + 1) % 1
-    pos.setY(i, y + edge * up * 0.03 * (1 + swell(t, lift)))
-  }
-  welded.computeVertexNormals()
-  return welded
 }
 
 function labelGeometry(): THREE.BufferGeometry {
@@ -221,29 +169,32 @@ function useLabelTexture(): THREE.CanvasTexture {
 
 const geometries = (() => {
   let built: Record<
-    'light' | 'dark' | 'lightBlock' | 'darkBlock' | 'frame' | 'iceFrame' | 'underGlow' | 'inlay' | 'labels',
+    'light' | 'dark' | 'frost' | 'lightCore' | 'darkBlock' | 'frame' | 'underGlow' | 'inlay' | 'labels',
     THREE.BufferGeometry
   > | null = null
   return () =>
     (built ??= {
       light: squaresGeometry(true),
       dark: squaresGeometry(false),
-      lightBlock: squaresGeometry(true, TRAY_DEPTH),
+      frost: squaresGeometry(true, FROST),
+      lightCore: squaresGeometry(true, TRAY_DEPTH - FROST, -FROST),
+      underGlow: flat(new THREE.ShapeGeometry(ring(FRAME_OUTER - 0.15, FRAME_INNER + 0.05)), TABLE_Y + 0.005),
       darkBlock: squaresGeometry(false, TRAY_DEPTH),
       frame: frameGeometry(),
-      iceFrame: iceFrameGeometry(),
-      underGlow: flat(new THREE.ShapeGeometry(ring(FRAME_OUTER - 0.15, FRAME_INNER + 0.05)), TABLE_Y + 0.005),
       inlay: flat(new THREE.ShapeGeometry(ring(INLAY[1], INLAY[0])), FRAME_TOP + 0.0015),
       labels: labelGeometry(),
     })
 })()
 
 const rippleMaterials = (() => {
-  let built: { light: THREE.MeshPhysicalMaterial; dark: THREE.MeshPhysicalMaterial } | null = null
+  let built: { light: THREE.MeshPhysicalMaterial; dark: THREE.MeshPhysicalMaterial; core: THREE.MeshPhysicalMaterial } | null = null
   return () =>
     (built ??= {
       light: linkMaterial('squareLight', withRipple(materials().squareLight)),
       dark: linkMaterial('squareDark', withRipple(materials().squareDark)),
+      // Glacier: the body under each frosted slab. Dark deep teal, so through the neighbouring
+      // glass you see depth, not a bright wall. Ripples with the slab above it.
+      core: withRipple(new THREE.MeshPhysicalMaterial({ color: '#06161f', roughness: 0.6 })),
     })
 })()
 
@@ -264,29 +215,35 @@ function useBoardRipple(): void {
   })
 }
 
-/** Soft radial glow for the glacier floor: lighter navy under the board, falling off to the room. */
-function useFloorGlow(): THREE.CanvasTexture {
+/**
+ * Glacier floor: a faint deep-teal pool of light under the board that falls off to exactly the
+ * room colour (sRGB texture, unlit), so it never shows an edge or a step against the background.
+ */
+function useFloorGlow(room: string): THREE.CanvasTexture {
   const texture = useMemo(() => {
+    const SIZE = 512
     const canvas = document.createElement('canvas')
-    canvas.width = canvas.height = 256
+    canvas.width = canvas.height = SIZE
     const ctx = canvas.getContext('2d')
     if (ctx) {
-      const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128)
-      grad.addColorStop(0, '#fff')
-      grad.addColorStop(0.1, 'rgba(255,255,255,0.75)')
-      grad.addColorStop(0.25, 'rgba(255,255,255,0.25)')
-      grad.addColorStop(0.55, 'rgba(40,40,40,0)')
-      ctx.fillStyle = '#282828'
-      ctx.fillRect(0, 0, 256, 256)
+      const h = SIZE / 2
+      const grad = ctx.createRadialGradient(h, h, 0, h, h, h)
+      // Board half-width is ~5 units of a FLOOR_SIZE plane: the pool spans a few board widths.
+      const k = 10 / FLOOR_SIZE
+      grad.addColorStop(0, '#0d2a3a')
+      grad.addColorStop(k * 0.6, '#0a2030')
+      grad.addColorStop(k * 1.6, room)
+      grad.addColorStop(1, room)
       ctx.fillStyle = grad
-      ctx.fillRect(0, 0, 256, 256)
+      ctx.fillRect(0, 0, SIZE, SIZE)
     }
-    return new THREE.CanvasTexture(canvas)
-  }, [])
+    const t = new THREE.CanvasTexture(canvas)
+    t.colorSpace = THREE.SRGBColorSpace
+    return t
+  }, [room])
   useEffect(() => () => texture.dispose(), [texture])
   return texture
 }
-
 
 function onSquareMove(e: ThreeEvent<PointerEvent>) {
   hover(positionToSquare(e.point.x, e.point.z))
@@ -305,21 +262,22 @@ export function Board({ room, dark }: { room: string; dark: boolean }) {
   const labels = useLabelTexture()
   const look = useLook()
   const set = useSettings((s) => s.boardSet)
-  const floorGlow = useFloorGlow()
+  const floorGlow = useFloorGlow(room)
   const tray = set === 'glacier'
   const navyFloor = set === 'glacier' && dark
   useBoardRipple()
 
   return (
     <group>
-      <mesh geometry={tray ? g.lightBlock : g.light} material={squares.light} receiveShadow />
+      <mesh geometry={tray ? g.frost : g.light} material={squares.light} receiveShadow />
+      {tray && <mesh geometry={g.lightCore} material={squares.core} />}
       <mesh geometry={tray ? g.darkBlock : g.dark} material={squares.dark} receiveShadow />
       {tray ? (
         <>
           {/* Tray floor under the blocks: what the glass tiles look down onto. */}
           <mesh position={[0, -TRAY_DEPTH + 0.002, 0]} rotation-x={-Math.PI / 2} raycast={() => undefined}>
             <planeGeometry args={[8.14, 8.14]} />
-            <meshBasicMaterial color="#0f3f8c" />
+            <meshBasicMaterial color="#2a4d5e" />
           </mesh>
           <TrappedIce />
         </>
@@ -329,14 +287,12 @@ export function Board({ room, dark }: { room: string; dark: boolean }) {
           <boxGeometry args={[8.1, 0.05, 8.1]} />
         </mesh>
       )}
-      <mesh geometry={set === 'glacier' ? g.iceFrame : g.frame} material={m.frame} castShadow receiveShadow />
-      {set === 'glacier' && (
-        <>
-          {/* Teal light under the glass frame, so its thickness glows through the refraction. */}
-          <mesh geometry={g.underGlow} raycast={() => undefined}>
-            <meshBasicMaterial color="#0f86b0" toneMapped={false} />
-          </mesh>
-        </>
+      <mesh geometry={g.frame} material={m.frame} castShadow receiveShadow />
+      {tray && (
+        // Faint teal light under the glass frame, so its thickness reads instead of going black.
+        <mesh geometry={g.underGlow} raycast={() => undefined}>
+          <meshBasicMaterial color="#14506b" />
+        </mesh>
       )}
       <mesh geometry={g.inlay} material={m.brass} receiveShadow />
       <mesh geometry={g.labels} renderOrder={1}>
@@ -351,10 +307,10 @@ export function Board({ room, dark }: { room: string; dark: boolean }) {
         />
       </mesh>
       <mesh position={[0, TABLE_Y, 0]} rotation-x={-Math.PI / 2} receiveShadow>
-        <planeGeometry args={[80, 80]} />
+        <planeGeometry args={navyFloor ? [FLOOR_SIZE, FLOOR_SIZE] : [80, 80]} />
         {navyFloor ? (
           // Unlit: a lit dielectric floor picks up the bright studio env as a grey sheen.
-          <meshBasicMaterial color="#0b3a66" map={floorGlow} />
+          <meshBasicMaterial map={floorGlow} />
         ) : (
           <meshStandardMaterial color={room} roughness={0.92} />
         )}

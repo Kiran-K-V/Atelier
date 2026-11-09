@@ -3,6 +3,7 @@ import { sceneSets, type BoardSet } from '../../design/tokens'
 import type { Color } from '../../rules/types'
 import { useSettings } from '../../store/settings'
 import { TIERS } from '../quality'
+import { frostTextures } from './frost'
 import { withGrain, type GrainUniforms } from './grain'
 import { marbleTextures } from './marble'
 
@@ -123,145 +124,141 @@ function atelier(): SetSpec {
 }
 
 /**
- * Frosted glass and calm sapphire: frosted glass light squares, clear blue glass blocks with
- * trapped ice, a deep teal glass frame, frosted crystal white pieces and navy glass dark
- * pieces. Transmission (a second render pass) only where the tier allows it; otherwise glossy
- * opaque stand-ins with a cyan sheen rim so they still read as deep, never flat.
+ * Frosted ice and deep sapphire-teal glass, one hue family. Figure-ground rule: white pieces are
+ * the brightest thing on the board, light squares are mid-light frosted grey, dark squares are
+ * deep see-through glass, dark pieces are darker still with a cool rim so they read on dark tiles.
+ * Transmission (a second render pass) only where the tier allows it; otherwise opaque or alpha
+ * stand-ins in the same values.
  */
 function glacier(transmission: boolean): SetSpec {
   const c = sceneSets.glacier
+  const frost = frostTextures()
   return {
     physical: {
-      // Frosted glass: smooth, softly diffuse, faint cool tint. Opaque, so it costs no extra pass.
+      // Frosted ice slab: fine low-contrast mottling in colour and roughness. Opaque, no extra pass.
+      // Darkened from the token: the studio key lights it up to about the token value on screen.
       squareLight: {
-        color: '#d4dee7',
-        roughness: 0.42,
-        clearcoat: 0.7,
-        clearcoatRoughness: 0.3,
-        sheen: 0.2,
-        sheenRoughness: 0.5,
-        sheenColor: '#eef5ff',
+        color: '#8799a6',
+        map: frost.color,
+        roughness: 1,
+        roughnessMap: frost.roughness,
+        clearcoat: 0.35,
+        clearcoatRoughness: 0.35,
       },
-      // Sapphire glass blocks: real transmission down to the tray floor, darkening with depth.
+      // Deep, low-saturation sapphire-teal glass blocks down to a dark tray floor.
       // Low tier: alpha transparency instead, so the trapped ice and floor still show through.
       squareDark: transmission
         ? {
-            color: '#eef4fb',
+            color: '#e4eff4',
             roughness: 0,
             transmission: 1,
             thickness: TRAY_DEPTH,
             ior: 1.5,
-            attenuationColor: '#1f5bc4',
-            attenuationDistance: 0.85,
+            attenuationColor: '#7a9eac',
+            attenuationDistance: 0.8,
             clearcoat: 1,
             clearcoatRoughness: 0.01,
           }
         : {
-            color: '#1f4a86',
+            color: c.squareDark,
             roughness: 0.05,
             clearcoat: 1,
             clearcoatRoughness: 0.01,
             transparent: true,
-            opacity: 0.42,
+            opacity: 0.6,
             depthWrite: false,
           },
-      // Thick teal glass: refracts the board edge and the lit table below; glossy teal on low tier.
+      // Straight bevelled frame in thick deep-teal glass; a faint cool sheen picks out the edges.
       frame: transmission
         ? {
-            color: '#c4f0ff',
+            color: '#d2ecf4',
             roughness: 0.04,
             transmission: 1,
             thickness: 0.8,
             ior: 1.5,
-            attenuationColor: c.frame,
-            attenuationDistance: 0.45,
-            // Teal-tinted reflections: at grazing angles fresnel would otherwise turn the frame silver.
-            specularColor: '#6fd6ee',
-            specularIntensity: 0.8,
-            clearcoat: 0.35,
-            clearcoatRoughness: 0.01,
-            sheen: 0.6,
-            sheenRoughness: 0.3,
-            sheenColor: '#46d6f2',
+            attenuationColor: '#2f6f8c',
+            attenuationDistance: 0.6,
+            // Teal-tinted, softer coat: at grazing angles a white coat turns the near rail grey.
+            specularColor: '#5f9fb5',
+            specularIntensity: 0.7,
+            clearcoat: 0.3,
+            clearcoatRoughness: 0.02,
+            sheen: 0.35,
+            sheenRoughness: 0.35,
+            sheenColor: '#7fb8cc',
           }
         : {
-            color: '#06324c',
+            color: '#082a3f',
             roughness: 0.08,
             clearcoat: 1,
             clearcoatRoughness: 0.02,
-            emissive: '#05324a',
-            emissiveIntensity: 0.3,
-            sheen: 0.3,
-            sheenRoughness: 0.3,
-            sheenColor: '#46d6f2',
+            sheen: 0.35,
+            sheenRoughness: 0.35,
+            sheenColor: '#7fb8cc',
           },
-      // Frosted silver-ice trim.
-      brass: { color: c.brass, metalness: 0.9, roughness: 0.35, clearcoat: 0.4, clearcoatRoughness: 0.25 },
-      // Frosted crystal: rough transmission blurs what is behind; grain and glints on top.
+      // Muted silver-teal trim: thin and dim, never brighter than the pieces.
+      brass: { color: '#4f7584', metalness: 0.6, roughness: 0.45, clearcoat: 0.2, clearcoatRoughness: 0.4 },
+      // Frosted crystal, mostly opaque so it stays the brightest element; crisp coat on top.
       pieceLight: transmission
         ? {
-            color: '#ffffff',
-            roughness: 0.42,
-            transmission: 0.7,
+            color: c.pieceLight,
+            roughness: 0.32,
+            transmission: 0.3,
             thickness: 0.35,
             ior: 1.45,
-            attenuationColor: '#dceaf3',
-            attenuationDistance: 0.6,
-            clearcoat: 0.6,
-            clearcoatRoughness: 0.12,
-            sheen: 0.6,
-            sheenRoughness: 0.4,
-            sheenColor: '#eef8ff',
-            emissive: '#9fb8c6',
-            emissiveIntensity: 0.12,
+            attenuationColor: '#e8f1f5',
+            attenuationDistance: 1,
+            clearcoat: 1,
+            clearcoatRoughness: 0.04,
+            sheen: 0.5,
+            sheenRoughness: 0.35,
+            sheenColor: '#ffffff',
+            emissive: '#ffffff',
+            emissiveIntensity: 0.32,
           }
         : {
             color: c.pieceLight,
-            roughness: 0.45,
-            clearcoat: 0.5,
-            clearcoatRoughness: 0.15,
-            sheen: 0.8,
-            sheenRoughness: 0.4,
-            sheenColor: '#e3f4ff',
-            emissive: '#2a3f4c',
-            emissiveIntensity: 0.1,
+            roughness: 0.35,
+            clearcoat: 1,
+            clearcoatRoughness: 0.05,
+            sheen: 0.6,
+            sheenRoughness: 0.35,
+            sheenColor: '#ffffff',
+            emissive: '#ffffff',
+            emissiveIntensity: 0.3,
           },
-      // Deep blue glass: thick cores absorb to navy, thin edges stay bright with a cyan sheen rim.
+      // Near-black teal glass: thick parts absorb almost fully, a cool sheen rim draws the outline.
       pieceDark: transmission
         ? {
-            color: '#d6ecff',
-            roughness: 0.03,
+            color: '#c9e2ec',
+            roughness: 0.02,
             transmission: 1,
             thickness: 0.4,
             ior: 1.5,
-            attenuationColor: '#0d3f8f',
-            attenuationDistance: 0.5,
+            attenuationColor: c.pieceDark,
+            attenuationDistance: 0.12,
             clearcoat: 1,
-            clearcoatRoughness: 0.01,
+            clearcoatRoughness: 0,
             sheen: 1,
-            sheenRoughness: 0.25,
-            sheenColor: '#4fd8ff',
-            emissive: '#04163a',
-            emissiveIntensity: 0.6,
+            sheenRoughness: 0.22,
+            sheenColor: '#6fc8de',
           }
         : {
-            color: '#0a2d66',
-            roughness: 0.08,
+            color: c.pieceDark,
+            roughness: 0.06,
             clearcoat: 1,
-            clearcoatRoughness: 0.02,
+            clearcoatRoughness: 0,
             sheen: 1,
-            sheenRoughness: 0.25,
-            sheenColor: '#4fd8ff',
-            emissive: '#03163a',
-            emissiveIntensity: 1,
+            sheenRoughness: 0.22,
+            sheenColor: '#6fc8de',
           },
     },
     standard: {
-      felt: { color: '#d5e6f2', roughness: 1 },
-      slit: { color: '#04283f', roughness: 0.5 },
+      felt: { color: '#b9cbd6', roughness: 1 },
+      slit: { color: '#06161f', roughness: 0.5 },
     },
     grain: {
-      pieceLight: { grain: 0.12, sparkle: 0, scale: 260 },
+      pieceLight: { grain: 0.1, sparkle: 0, scale: 260 },
       pieceDark: NO_GRAIN,
     },
   }
