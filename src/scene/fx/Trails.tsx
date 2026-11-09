@@ -1,9 +1,9 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { scene } from '../../design/tokens'
 import { useSettings } from '../../store/settings'
 import { squareToPosition } from '../coords'
+import { look } from '../look'
 import { flatPlane, hdr, particleGeometry, stripGeometry } from './geometry'
 import { boardStrip, point2 } from './strip'
 import { clamp01, easeFn, useLife, useOwned, type FxProps } from './life'
@@ -28,39 +28,42 @@ interface TrailLook {
   readonly flow: number
 }
 
-const LOOK: Record<'bishop' | 'queen', TrailLook> = {
-  // A thin, sharp streak of light.
-  bishop: { half: 0.07, sway: 0, core: 0.16, halo: 0.2, wave: 0, color: hdr(scene.brass, 1.9), head: hdr('#fff4e0', 3), flow: 0 },
-  // A wider, flowing ribbon with a solid core.
-  queen: { half: 0.22, sway: 0.05, core: 0.5, halo: 0.6, wave: 0.1, color: hdr(scene.brass, 1.7), head: hdr('#fff6ea', 2.6), flow: 1.4 },
+/** Built per effect so the active board set's colours apply. */
+function trailLook(style: 'bishop' | 'queen'): TrailLook {
+  const { brass, glow } = look()
+  return style === 'bishop'
+    ? // A thin, sharp streak of light.
+      { half: 0.07, sway: 0, core: 0.16, halo: 0.2, wave: 0, color: hdr(brass, 1.9), head: hdr(glow, 3), flow: 0 }
+    : // A wider, flowing ribbon with a solid core.
+      { half: 0.22, sway: 0.05, core: 0.5, halo: 0.6, wave: 0.1, color: hdr(brass, 1.7), head: hdr(glow, 2.6), flow: 1.4 }
 }
 
 /** Bishop and queen: light drawn on the board along the move, a glow riding the head, then a fade. */
 export function Trail({ event, startedAt, density, onDone }: FxProps<'trail'>) {
-  const look = LOOK[event.style]
+  const tl = useMemo(() => trailLook(event.style), [event.style])
   const a = point2(event.from)
   const b = point2(event.to)
   const duration = Math.max(0.15, event.duration)
   const headMesh = useRef<THREE.Mesh>(null)
   const headPoint = useRef<Point2>({ x: 0, z: 0 }).current
-  const strip = useOwned(() => boardStrip(a, b, TRAIL_Y, look.half, look.sway).geometry)
+  const strip = useOwned(() => boardStrip(a, b, TRAIL_Y, tl.half, tl.sway).geometry)
   const length = Math.hypot(b.x - a.x, b.z - a.z)
   const line = useOwned(() => {
     const m = stripMaterial()
     const u = m.uniforms
-    u.uColor.value.copy(look.color)
-    u.uHeadColor.value.copy(look.head)
+    u.uColor.value.copy(tl.color)
+    u.uHeadColor.value.copy(tl.head)
     u.uLength.value = length
-    u.uCore.value = look.core
-    u.uHalo.value = look.halo
-    u.uWave.value = look.wave
-    u.uFlow.value = look.flow
+    u.uCore.value = tl.core
+    u.uHalo.value = tl.halo
+    u.uWave.value = tl.wave
+    u.uFlow.value = tl.flow
     u.uDash.value = 1.5
     return m
   })
   const glow = useOwned(() => {
     const m = ringMaterial({ additive: true })
-    m.uniforms.uColor.value.copy(look.head).multiplyScalar(0.6)
+    m.uniforms.uColor.value.copy(tl.head).multiplyScalar(0.6)
     m.uniforms.uFill.value = 1
     m.uniforms.uRadius.value = 0.06
     m.uniforms.uWidth.value = 0.08
@@ -71,8 +74,8 @@ export function Trail({ event, startedAt, density, onDone }: FxProps<'trail'>) {
   const sparkles = useOwned(() =>
     particleGeometry(sparkleCount, (_, p) => {
       const u = Math.random()
-      const q = pathPoint(a, b, u, look.sway, { x: 0, z: 0 })
-      const spread = (Math.random() - 0.5) * look.half * 2
+      const q = pathPoint(a, b, u, tl.sway, { x: 0, z: 0 })
+      const spread = (Math.random() - 0.5) * tl.half * 2
       p.origin.set(q.x + spread * 0.5, 0.03, q.z + spread * 0.5)
       p.velocity.set((Math.random() - 0.5) * 0.3, 0.3 + Math.random() * 0.35, (Math.random() - 0.5) * 0.3)
       p.meta.set(soft(u) * duration * 0.95, 0.45 + Math.random() * 0.35, 0.035 + Math.random() * 0.025, Math.random())
@@ -80,7 +83,7 @@ export function Trail({ event, startedAt, density, onDone }: FxProps<'trail'>) {
   )
   const sparkle = useOwned(() => {
     const m = particleMaterial(true)
-    m.uniforms.uColor.value.copy(hdr('#ffe7b8', 3))
+    m.uniforms.uColor.value.copy(hdr(look().glow, 3))
     m.uniforms.uDrag.value = 1.5
     m.uniforms.uGravity.value = -0.2
     m.uniforms.uFlicker.value = 1
@@ -97,7 +100,7 @@ export function Trail({ event, startedAt, density, onDone }: FxProps<'trail'>) {
     line.uniforms.uOpacity.value = fade
     sparkle.uniforms.uTime.value = t
     glow.uniforms.uOpacity.value = 0.7 * (1 - clamp01((t - duration * 0.9) / 0.25)) * clamp01(t / 0.05)
-    pathPoint(a, b, head, look.sway, headPoint)
+    pathPoint(a, b, head, tl.sway, headPoint)
     headMesh.current?.position.set(headPoint.x, TRAIL_Y + 0.002, headPoint.z)
   })
 
@@ -125,7 +128,7 @@ export function ThreatLine({ event, startedAt, ending, onDone }: FxProps<'threat
   const line = useOwned(() => {
     const m = stripMaterial()
     const u = m.uniforms
-    u.uColor.value.copy(hdr(scene.check, 2.4))
+    u.uColor.value.copy(hdr(look().check, 2.4))
     u.uHeadColor.value.copy(hdr('#ff9c84', 2.8))
     u.uLength.value = length
     u.uCore.value = 0.26
@@ -187,8 +190,8 @@ export function Slash({ event, startedAt, onDone }: FxProps<'slash'>) {
   const line = useOwned(() => {
     const m = stripMaterial()
     const u = m.uniforms
-    u.uColor.value.copy(hdr('#ffe2a8', 3.5))
-    u.uHeadColor.value.copy(hdr('#fff8ee', 5))
+    u.uColor.value.copy(hdr(look().glow, 3.5))
+    u.uHeadColor.value.copy(hdr(look().glow, 5))
     u.uLength.value = SLASH_RADIUS * 2
     u.uCore.value = 0.3
     u.uHalo.value = 0.3

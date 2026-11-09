@@ -1,3 +1,4 @@
+import type { BoardSet } from '../design/tokens'
 import type { Color, GameStatus, MoveIntent, PieceInstance, PlayedMove, Square } from '../rules/types'
 
 export type Difficulty = 1 | 2 | 3 | 4 | 5 | 6
@@ -49,6 +50,8 @@ export interface GameActions {
 
 export interface SettingsState {
   readonly theme: ThemePreference
+  /** Material set for the board, pieces and UI palette. */
+  readonly boardSet: BoardSet
   readonly quality: QualityTier
   /** True when the user chose "auto"; the probe may then change `quality`. */
   readonly qualityAuto: boolean
@@ -62,6 +65,7 @@ export interface SettingsState {
 
 export interface SettingsActions {
   setTheme: (t: ThemePreference) => void
+  setBoardSet: (s: BoardSet) => void
   setQuality: (q: QualityTier | 'auto') => void
   setDetectedQuality: (q: QualityTier) => void
   setReducedMotion: (v: boolean | null) => void

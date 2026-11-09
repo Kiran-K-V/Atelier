@@ -1,17 +1,16 @@
 import { useFrame } from '@react-three/fiber'
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { scene } from '../../design/tokens'
 import { gDur, gEase, gsap } from '../../motion/ease'
 import type { Square } from '../../rules/types'
 import { useGame } from '../../store/game'
 import { useSettings } from '../../store/settings'
 import { squareToPosition } from '../coords'
+import { useLook } from '../look'
 import { glowTexture, type GlowShape } from '../materials/glow'
 
-const HALO = '#1a1208'
-/** Deeper amber than the token gold: pale gold washes out on white squares. */
-const AMBER = '#d99a1f'
+/** Soft dark underlay per set, so marks read on pale squares too. */
+const HALO = { atelier: '#1a1208', glacier: '#010a1a' } as const
 
 export const noRaycast = () => undefined
 
@@ -29,9 +28,10 @@ interface MarkProps {
   readonly popIn?: boolean
   /** Soft dark underlay so the mark reads on pale marble too. */
   readonly halo?: number
+  readonly haloColor?: string
 }
 
-function Mark({ square, shape, color, size, y, opacity, intensity = 1, pulse = false, popIn = true, halo = 0 }: MarkProps) {
+function Mark({ square, shape, color, size, y, opacity, intensity = 1, pulse = false, popIn = true, halo = 0, haloColor = HALO.atelier }: MarkProps) {
   const mesh = useRef<THREE.Group>(null)
   const mat = useRef<THREE.MeshBasicMaterial>(null)
   const reduced = useSettings((s) => s.reducedMotion)
@@ -58,7 +58,7 @@ function Mark({ square, shape, color, size, y, opacity, intensity = 1, pulse = f
       {halo > 0 && shape !== 'fill' && (
         <mesh position-z={-0.0004} scale={1.18} renderOrder={2} raycast={noRaycast}>
           <planeGeometry args={[size, size]} />
-          <meshBasicMaterial map={glowTexture(shape)} color={HALO} transparent opacity={halo} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial map={glowTexture(shape)} color={haloColor} transparent opacity={halo} depthWrite={false} toneMapped={false} />
         </mesh>
       )}
       <mesh renderOrder={2} raycast={noRaycast}>
@@ -85,6 +85,8 @@ export function Highlights() {
   const checkSquare = useGame((s) => s.checkSquare)
   const cursor = useGame((s) => s.cursor)
   const occupied = useMemo(() => new Set(pieces.map((p) => p.square)), [pieces])
+  const scene = useLook()
+  const haloColor = HALO[useSettings((s) => s.boardSet)]
 
   return (
     <group>
@@ -95,12 +97,12 @@ export function Highlights() {
       {checkSquare && (
         <Mark key={`check-${checkSquare}`} square={checkSquare} shape="blob" color={scene.check} size={1.5} y={0.004} opacity={0.85} intensity={2.2} pulse />
       )}
-      {selected && <Mark key={`sel-${selected}`} square={selected} shape="frame" color={AMBER} size={1} y={0.005} opacity={1} intensity={1.15} halo={0.5} />}
+      {selected && <Mark key={`sel-${selected}`} square={selected} shape="frame" color={scene.marker} size={1} y={0.005} opacity={1} intensity={1.15} halo={0.5} haloColor={haloColor} />}
       {legalTargets.map((sq) =>
         occupied.has(sq) ? (
-          <Mark key={`cap-${sq}`} square={sq} shape="ring" color={AMBER} size={1} y={0.007} opacity={1} intensity={1.15} halo={0.5} />
+          <Mark key={`cap-${sq}`} square={sq} shape="ring" color={scene.marker} size={1} y={0.007} opacity={1} intensity={1.15} halo={0.5} haloColor={haloColor} />
         ) : (
-          <Mark key={`mv-${sq}`} square={sq} shape="disc" color={AMBER} size={0.34} y={0.007} opacity={1} intensity={1.15} halo={0.55} />
+          <Mark key={`mv-${sq}`} square={sq} shape="disc" color={scene.marker} size={0.34} y={0.007} opacity={1} intensity={1.15} halo={0.55} haloColor={haloColor} />
         ),
       )}
       {cursor && <Mark key={`cur-${cursor}`} square={cursor} shape="frame" color={scene.cursor} size={0.96} y={0.009} opacity={0.95} intensity={1.6} />}

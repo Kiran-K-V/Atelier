@@ -1,7 +1,13 @@
 import * as THREE from 'three'
-import { scene } from '../../design/tokens'
+import { sceneSets, type BoardSet } from '../../design/tokens'
 import type { Color } from '../../rules/types'
+import { useSettings } from '../../store/settings'
+import { TIERS } from '../quality'
+import { depthUniforms } from './depth'
+import { withGrain, type GrainUniforms } from './grain'
+import { iceTextures } from './ice'
 import { marbleTextures } from './marble'
+import { snowTextures } from './snow'
 
 export interface SceneMaterials {
   readonly squareLight: THREE.MeshPhysicalMaterial
@@ -14,67 +20,316 @@ export interface SceneMaterials {
   readonly slit: THREE.MeshStandardMaterial
 }
 
-function create(): SceneMaterials {
-  const marble = marbleTextures()
-  const polishedMarble = (map: THREE.Texture) =>
-    new THREE.MeshPhysicalMaterial({
-      map,
-      roughnessMap: marble.roughness,
-      roughness: 1,
-      clearcoat: 0.65,
-      clearcoatRoughness: 0.12,
-      envMapIntensity: 0.9,
-    })
+type PhysicalKey = Exclude<keyof SceneMaterials, 'felt' | 'slit'>
+type StandardKey = 'felt' | 'slit'
+type Physical = THREE.MeshPhysicalMaterialParameters
+type Standard = THREE.MeshStandardMaterialParameters
 
+interface Grain {
+  readonly grain: number
+  readonly sparkle: number
+  readonly scale: number
+}
+
+interface SetSpec {
+  readonly physical: Record<PhysicalKey, Physical>
+  readonly standard: Record<StandardKey, Standard>
+  readonly grain: Record<'pieceLight' | 'pieceDark', Grain>
+  /** Parallax fracture layers inside the dark squares (depth.ts); null leaves them off. */
+  readonly depth: { readonly strength: number; readonly map: THREE.Texture } | null
+}
+
+/**
+ * Every property any set touches, at three's defaults. Each set is applied over these, so
+ * switching back and forth never leaves a value from the other set behind.
+ */
+const PHYSICAL_DEFAULTS: Physical = {
+  color: '#ffffff',
+  map: null,
+  roughness: 1,
+  roughnessMap: null,
+  metalness: 0,
+  bumpMap: null,
+  bumpScale: 1,
+  clearcoat: 0,
+  clearcoatRoughness: 0,
+  sheen: 0,
+  sheenRoughness: 1,
+  sheenColor: '#000000',
+  emissive: '#000000',
+  emissiveIntensity: 1,
+  transmission: 0,
+  thickness: 0,
+  ior: 1.5,
+  attenuationColor: '#ffffff',
+  attenuationDistance: Infinity,
+  specularIntensity: 1,
+  envMapIntensity: 1,
+}
+
+const STANDARD_DEFAULTS: Standard = { color: '#ffffff', roughness: 1, metalness: 0, emissive: '#000000', emissiveIntensity: 1 }
+
+const NO_GRAIN: Grain = { grain: 0, sparkle: 0, scale: 1 }
+
+/** Polished ivory marble, ebony and brass: the original set, values unchanged. */
+function atelier(): SetSpec {
+  const c = sceneSets.atelier
+  const marble = marbleTextures()
+  const polished = (map: THREE.Texture): Physical => ({
+    map,
+    roughnessMap: marble.roughness,
+    roughness: 1,
+    clearcoat: 0.65,
+    clearcoatRoughness: 0.12,
+    envMapIntensity: 0.9,
+  })
   return {
-    squareLight: polishedMarble(marble.light),
-    squareDark: polishedMarble(marble.dark),
-    frame: new THREE.MeshPhysicalMaterial({
-      color: scene.frame,
-      roughness: 0.32,
-      clearcoat: 1,
-      clearcoatRoughness: 0.06,
-    }),
-    brass: new THREE.MeshPhysicalMaterial({
-      color: scene.brass,
-      metalness: 1,
-      roughness: 0.3,
-      clearcoat: 0.3,
-      clearcoatRoughness: 0.2,
-    }),
-    // Ivory: softer coat, warm sheen and a faint warm self-glow stand in for subsurface scattering.
-    pieceLight: new THREE.MeshPhysicalMaterial({
-      color: scene.pieceLight,
-      roughness: 0.38,
-      clearcoat: 0.45,
-      clearcoatRoughness: 0.22,
-      sheen: 0.35,
-      sheenRoughness: 0.55,
-      sheenColor: new THREE.Color('#ffe9cc'),
-      emissive: new THREE.Color('#3a2a16'),
-      emissiveIntensity: 0.12,
-    }),
-    // Ebony: deep, high-gloss lacquer.
-    pieceDark: new THREE.MeshPhysicalMaterial({
-      color: scene.pieceDark,
-      roughness: 0.42,
-      clearcoat: 1,
-      clearcoatRoughness: 0.04,
-      sheen: 0.12,
-      sheenRoughness: 0.4,
-      sheenColor: new THREE.Color('#8a6a4a'),
-    }),
-    felt: new THREE.MeshStandardMaterial({ color: '#1d3a2b', roughness: 1 }),
-    slit: new THREE.MeshStandardMaterial({ color: '#0b0908', roughness: 0.7 }),
+    physical: {
+      squareLight: polished(marble.light),
+      squareDark: polished(marble.dark),
+      frame: { color: c.frame, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.06 },
+      brass: { color: c.brass, metalness: 1, roughness: 0.3, clearcoat: 0.3, clearcoatRoughness: 0.2 },
+      // Ivory: softer coat, warm sheen and a faint warm self-glow stand in for subsurface scattering.
+      pieceLight: {
+        color: c.pieceLight,
+        roughness: 0.38,
+        clearcoat: 0.45,
+        clearcoatRoughness: 0.22,
+        sheen: 0.35,
+        sheenRoughness: 0.55,
+        sheenColor: '#ffe9cc',
+        emissive: '#3a2a16',
+        emissiveIntensity: 0.12,
+      },
+      // Ebony: deep, high-gloss lacquer.
+      pieceDark: {
+        color: c.pieceDark,
+        roughness: 0.42,
+        clearcoat: 1,
+        clearcoatRoughness: 0.04,
+        sheen: 0.12,
+        sheenRoughness: 0.4,
+        sheenColor: '#8a6a4a',
+      },
+    },
+    standard: {
+      felt: { color: '#1d3a2b', roughness: 1 },
+      slit: { color: '#0b0908', roughness: 0.7 },
+    },
+    grain: { pieceLight: NO_GRAIN, pieceDark: NO_GRAIN },
+    depth: null,
   }
 }
 
-let cached: SceneMaterials | null = null
+/**
+ * Snow and deep ocean: frosted glittering snow squares, sapphire resin squares with frozen
+ * crystal fractures, a deep teal glass frame, frosted crystal white pieces and navy glass dark
+ * pieces. Transmission (a second render pass) only where the tier allows it; otherwise glossy
+ * opaque stand-ins with a cyan sheen rim so they still read as deep, never flat.
+ */
+function glacier(transmission: boolean): SetSpec {
+  const c = sceneSets.glacier
+  const snow = snowTextures()
+  const ice = iceTextures()
+  return {
+    physical: {
+      squareLight: {
+        map: snow.color,
+        roughnessMap: snow.roughness,
+        roughness: 1,
+        bumpMap: snow.bump,
+        bumpScale: 6,
+        clearcoat: 0.12,
+        clearcoatRoughness: 0.5,
+        sheen: 0.35,
+        sheenRoughness: 0.45,
+        sheenColor: '#e6f2ff',
+        envMapIntensity: 1,
+      },
+      squareDark: {
+        map: ice.color,
+        roughnessMap: ice.roughness,
+        roughness: 1,
+        bumpMap: ice.bump,
+        bumpScale: 3,
+        clearcoat: 1,
+        clearcoatRoughness: 0.02,
+        envMapIntensity: 1.4,
+      },
+      frame: transmission
+        ? {
+            color: '#cdf3ff',
+            roughness: 0.05,
+            transmission: 1,
+            thickness: 0.9,
+            ior: 1.5,
+            attenuationColor: c.frame,
+            attenuationDistance: 0.8,
+            clearcoat: 1,
+            clearcoatRoughness: 0.02,
+            emissive: '#06384f',
+            emissiveIntensity: 0.6,
+            sheen: 0.7,
+            sheenRoughness: 0.3,
+            sheenColor: '#46d6f2',
+            envMapIntensity: 1.5,
+          }
+        : {
+            color: c.frame,
+            roughness: 0.1,
+            clearcoat: 1,
+            clearcoatRoughness: 0.02,
+            emissive: '#04283a',
+            emissiveIntensity: 0.6,
+            sheen: 0.8,
+            sheenRoughness: 0.3,
+            sheenColor: '#46d6f2',
+            envMapIntensity: 1.5,
+          },
+      // Frosted silver-ice trim.
+      brass: { color: c.brass, metalness: 0.9, roughness: 0.35, clearcoat: 0.4, clearcoatRoughness: 0.25 },
+      // Frosted crystal: rough transmission blurs what is behind; grain and glints on top.
+      pieceLight: transmission
+        ? {
+            color: '#ffffff',
+            roughness: 0.42,
+            transmission: 0.7,
+            thickness: 0.35,
+            ior: 1.45,
+            attenuationColor: '#dceaf3',
+            attenuationDistance: 0.6,
+            clearcoat: 0.6,
+            clearcoatRoughness: 0.12,
+            sheen: 0.6,
+            sheenRoughness: 0.4,
+            sheenColor: '#eef8ff',
+            emissive: '#9fb8c6',
+            emissiveIntensity: 0.12,
+          }
+        : {
+            color: c.pieceLight,
+            roughness: 0.45,
+            clearcoat: 0.5,
+            clearcoatRoughness: 0.15,
+            sheen: 0.8,
+            sheenRoughness: 0.4,
+            sheenColor: '#e3f4ff',
+            emissive: '#2a3f4c',
+            emissiveIntensity: 0.1,
+          },
+      // Navy glass: near-black where thick, cyan at the thin edges (sheen rim).
+      pieceDark: transmission
+        ? {
+            color: '#d4f4ff',
+            roughness: 0.04,
+            transmission: 1,
+            thickness: 0.6,
+            ior: 1.5,
+            attenuationColor: c.pieceDark,
+            attenuationDistance: 0.55,
+            clearcoat: 1,
+            clearcoatRoughness: 0.02,
+            emissive: '#03243a',
+            emissiveIntensity: 0.5,
+            sheen: 1,
+            sheenRoughness: 0.28,
+            sheenColor: '#3fd0f0',
+            envMapIntensity: 1.4,
+          }
+        : {
+            color: '#062c48',
+            roughness: 0.1,
+            clearcoat: 1,
+            clearcoatRoughness: 0.02,
+            sheen: 1,
+            sheenRoughness: 0.28,
+            sheenColor: '#38c8ec',
+            emissive: '#021a2c',
+            emissiveIntensity: 1,
+            envMapIntensity: 1.4,
+          },
+    },
+    standard: {
+      felt: { color: '#d5e6f2', roughness: 1 },
+      slit: { color: '#04283f', roughness: 0.5 },
+    },
+    grain: {
+      pieceLight: { grain: 0.3, sparkle: 0.08, scale: 260 },
+      pieceDark: NO_GRAIN,
+    },
+    depth: { strength: 1, map: ice.deep },
+  }
+}
 
-/** Created on first use (needs a DOM for the marble canvas) and shared for the app's lifetime. */
+interface Store {
+  readonly mats: SceneMaterials
+  readonly grain: Record<'pieceLight' | 'pieceDark', GrainUniforms>
+  /** Long-lived copies (the board's ripple clones) that must follow their source on a switch. */
+  readonly linked: { key: PhysicalKey; mat: THREE.MeshPhysicalMaterial }[]
+}
+
+function apply(store: Store, set: BoardSet, transmission: boolean): void {
+  const spec = set === 'glacier' ? glacier(transmission) : atelier()
+  const physical = (key: PhysicalKey, m: THREE.MeshPhysicalMaterial) => {
+    m.setValues({ ...PHYSICAL_DEFAULTS, ...spec.physical[key] })
+    m.needsUpdate = true
+  }
+  for (const key of Object.keys(spec.physical) as PhysicalKey[]) physical(key, store.mats[key])
+  for (const { key, mat } of store.linked) physical(key, mat)
+  for (const key of Object.keys(spec.standard) as StandardKey[]) {
+    store.mats[key].setValues({ ...STANDARD_DEFAULTS, ...spec.standard[key] })
+    store.mats[key].needsUpdate = true
+  }
+  depthUniforms.uDepth.value = spec.depth?.strength ?? 0
+  if (spec.depth) depthUniforms.uDeepMap.value = spec.depth.map
+  for (const key of ['pieceLight', 'pieceDark'] as const) {
+    const g = spec.grain[key]
+    store.grain[key].uGrain.value = g.grain
+    store.grain[key].uSparkle.value = g.sparkle
+    store.grain[key].uGrainScale.value = g.scale
+  }
+}
+
+function create(): Store {
+  const mats: SceneMaterials = {
+    squareLight: new THREE.MeshPhysicalMaterial(),
+    squareDark: new THREE.MeshPhysicalMaterial(),
+    frame: new THREE.MeshPhysicalMaterial(),
+    brass: new THREE.MeshPhysicalMaterial(),
+    pieceLight: new THREE.MeshPhysicalMaterial(),
+    pieceDark: new THREE.MeshPhysicalMaterial(),
+    felt: new THREE.MeshStandardMaterial(),
+    slit: new THREE.MeshStandardMaterial(),
+  }
+  const store: Store = { mats, grain: { pieceLight: withGrain(mats.pieceLight), pieceDark: withGrain(mats.pieceDark) }, linked: [] }
+  const current = () => {
+    const s = useSettings.getState()
+    apply(store, s.boardSet, TIERS[s.quality].transmission)
+  }
+  current()
+  // Switch in place: every mesh, instanced shard and morph keeps its material reference.
+  useSettings.subscribe((s, prev) => {
+    if (s.boardSet !== prev.boardSet || TIERS[s.quality].transmission !== TIERS[prev.quality].transmission) current()
+  })
+  return store
+}
+
+let cached: Store | null = null
+
+const store = (): Store => (cached ??= create())
+
+/** Created on first use (needs a DOM for the canvas textures) and shared for the app's lifetime. */
 export function materials(): SceneMaterials {
-  cached ??= create()
-  return cached
+  return store().mats
+}
+
+/**
+ * Registers a long-lived copy of a scene material so set switches update it too. Short-lived
+ * clones (capture ghosts, promotion crossfades) copy the set at creation and need no link.
+ */
+export function linkMaterial<T extends THREE.MeshPhysicalMaterial>(key: PhysicalKey, mat: T): T {
+  store().linked.push({ key, mat })
+  return mat
 }
 
 export function pieceMaterial(color: Color): THREE.MeshPhysicalMaterial {

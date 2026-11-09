@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { BOARD_SETS } from '../design/tokens'
 import { safeStorage } from './storage'
 import type { QualityTier, SettingsActions, SettingsState, ThemePreference } from './types'
 
@@ -7,7 +8,7 @@ const REDUCE_QUERY = '(prefers-reduced-motion: reduce)'
 const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark']
 const TIERS: readonly QualityTier[] = ['low', 'medium', 'high']
 
-type Persisted = Pick<SettingsState, 'theme' | 'quality' | 'qualityAuto' | 'reducedMotionUser' | 'sound' | 'tactics'>
+type Persisted = Pick<SettingsState, 'theme' | 'boardSet' | 'quality' | 'qualityAuto' | 'reducedMotionUser' | 'sound' | 'tactics'>
 
 const canMatchMedia = (): boolean => typeof window !== 'undefined' && typeof window.matchMedia === 'function'
 
@@ -21,6 +22,7 @@ function readPersisted(raw: unknown): Partial<Persisted> {
   const r = raw as Record<string, unknown>
   const out: { -readonly [K in keyof Persisted]?: Persisted[K] } = {}
   if (isOneOf(THEMES, r.theme)) out.theme = r.theme
+  if (isOneOf(BOARD_SETS, r.boardSet)) out.boardSet = r.boardSet
   if (isOneOf(TIERS, r.quality)) out.quality = r.quality
   if (typeof r.qualityAuto === 'boolean') out.qualityAuto = r.qualityAuto
   if (typeof r.reducedMotionUser === 'boolean' || r.reducedMotionUser === null) out.reducedMotionUser = r.reducedMotionUser
@@ -33,6 +35,7 @@ export const useSettings = create<SettingsState & SettingsActions>()(
   persist(
     (set) => ({
       theme: 'system',
+      boardSet: 'glacier',
       quality: 'high',
       qualityAuto: false,
       reducedMotion: systemPrefersReducedMotion(),
@@ -41,6 +44,7 @@ export const useSettings = create<SettingsState & SettingsActions>()(
       tactics: true,
 
       setTheme: (theme) => set({ theme }),
+      setBoardSet: (boardSet) => set({ boardSet }),
       setQuality: (q) => set(q === 'auto' ? { qualityAuto: true } : { quality: q, qualityAuto: false }),
       setDetectedQuality: (quality) => set((s) => (s.qualityAuto ? { quality } : s)),
       setReducedMotion: (v) => set({ reducedMotionUser: v, reducedMotion: v ?? systemPrefersReducedMotion() }),
@@ -52,6 +56,7 @@ export const useSettings = create<SettingsState & SettingsActions>()(
       storage: createJSONStorage(() => safeStorage),
       partialize: (s): Persisted => ({
         theme: s.theme,
+        boardSet: s.boardSet,
         quality: s.quality,
         qualityAuto: s.qualityAuto,
         reducedMotionUser: s.reducedMotionUser,
@@ -67,8 +72,9 @@ export const useSettings = create<SettingsState & SettingsActions>()(
 )
 
 // The root element carries the theme and motion mode so CSS can react without React.
-function applyToDocument({ theme, reducedMotion }: SettingsState): void {
+function applyToDocument({ theme, boardSet, reducedMotion }: SettingsState): void {
   const root = document.documentElement
+  root.setAttribute('data-set', boardSet)
   if (theme === 'system') root.removeAttribute('data-theme')
   else root.setAttribute('data-theme', theme)
   root.setAttribute('data-motion', reducedMotion ? 'reduce' : 'full')

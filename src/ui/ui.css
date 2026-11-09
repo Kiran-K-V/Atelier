@@ -24,3 +24,53 @@ html[data-motion='reduce'] *::after {
   scrollbar-width: thin;
   scrollbar-color: var(--color-line-strong) transparent;
 }
+
+/*
+ * Glacier glass. Atelier (data-set='atelier') matches none of these rules and keeps its flat panels.
+ * Glacier is the default set, so it matches whenever data-set is absent, like the token rules.
+ * Colours come from the generated --c-page-bg, --c-glass-edge and --c-glass-wash.
+ */
+:root:not([data-set='atelier']) .app-bg {
+  background: var(--c-page-bg);
+}
+
+:root:not([data-set='atelier']) .glass {
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  backdrop-filter: blur(22px) saturate(1.6);
+  /* A wash over the translucent surface keeps text readable when a bright square sits behind. */
+  background-image: var(--c-glass-wash);
+}
+
+/* Dim layer behind a modal: soften the board instead of just darkening it. */
+:root:not([data-set='atelier']) .glass-scrim {
+  -webkit-backdrop-filter: blur(6px) saturate(1.2);
+  backdrop-filter: blur(6px) saturate(1.2);
+}
+
+/* In the components layer so a shadow utility (shadow-lg, hover:shadow-glow) still wins the shadow,
+   while its composed value keeps the top edge through --tw-inset-shadow. */
+@layer components {
+  :root:not([data-set='atelier']) .glass {
+    --tw-inset-shadow: inset 0 1px 0 var(--c-glass-edge);
+    box-shadow:
+      var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
+      var(--c-glass-lift);
+  }
+}
+
+/* Settings scrim: only the phone bottom sheet dims the page. On desktop the scrim is an invisible click-catcher. */
+@media (max-width: 1023.98px) {
+  :root:not([data-set='atelier']) .glass-scrim-sheet {
+    -webkit-backdrop-filter: blur(6px) saturate(1.2);
+    backdrop-filter: blur(6px) saturate(1.2);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root:not([data-set='atelier']) .glass,
+  :root:not([data-set='atelier']) .glass-scrim,
+  :root:not([data-set='atelier']) .glass-scrim-sheet {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

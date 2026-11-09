@@ -1,5 +1,6 @@
 import * as THREE from 'three'
-import { scene } from '../../design/tokens'
+import { sceneSets } from '../../design/tokens'
+import { fbm, mix, paint, rgb, texture } from './canvas'
 
 const SIZE = 1024
 
@@ -15,46 +16,6 @@ export function mulberry32(seed: number): () => number {
   }
 }
 
-function hash(x: number, y: number): number {
-  let h = Math.imul(x, 374761393) + Math.imul(y, 668265263)
-  h = Math.imul(h ^ (h >>> 13), 1274126177)
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296
-}
-
-function valueNoise(x: number, y: number): number {
-  const xi = Math.floor(x)
-  const yi = Math.floor(y)
-  const xf = x - xi
-  const yf = y - yi
-  const u = xf * xf * (3 - 2 * xf)
-  const v = yf * yf * (3 - 2 * yf)
-  const a = hash(xi, yi)
-  const b = hash(xi + 1, yi)
-  const c = hash(xi, yi + 1)
-  const d = hash(xi + 1, yi + 1)
-  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v
-}
-
-function fbm(x: number, y: number, octaves: number): number {
-  let sum = 0
-  let amp = 0.5
-  let f = 1
-  for (let i = 0; i < octaves; i++) {
-    sum += amp * valueNoise(x * f, y * f)
-    f *= 2.03
-    amp *= 0.5
-  }
-  return sum
-}
-
-/** sRGB bytes; canvas pixels are sRGB, so no linear conversion here. */
-function rgb(hex: string): [number, number, number] {
-  const n = parseInt(hex.slice(1), 16)
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
-}
-
-const mix = (a: number, b: number, t: number) => a + (b - a) * t
-
 export interface MarbleTextures {
   readonly light: THREE.CanvasTexture
   readonly dark: THREE.CanvasTexture
@@ -62,28 +23,15 @@ export interface MarbleTextures {
   readonly roughness: THREE.CanvasTexture
 }
 
-function texture(canvas: HTMLCanvasElement, color: boolean): THREE.CanvasTexture {
-  const t = new THREE.CanvasTexture(canvas)
-  t.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace
-  t.anisotropy = 8
-  return t
-}
-
 /**
  * One noise field, three images: ivory marble with grey veins, basalt with pale veins,
  * and a shared roughness map. Generated once; squares sample random windows of it.
  */
 function generate(): MarbleTextures {
-  const make = () => {
-    const c = document.createElement('canvas')
-    c.width = c.height = SIZE
-    const ctx = c.getContext('2d')
-    if (!ctx) throw new Error('2D canvas unavailable')
-    return { c, ctx, img: ctx.createImageData(SIZE, SIZE) }
-  }
-  const L = make()
-  const D = make()
-  const R = make()
+  const L = paint(SIZE)
+  const D = paint(SIZE)
+  const R = paint(SIZE)
+  const scene = sceneSets.atelier
   const lightBase = rgb(scene.squareLight)
   const lightVein = rgb('#9c907e')
   const lightGold = rgb('#c4a878')

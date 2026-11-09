@@ -1,14 +1,15 @@
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { scene } from '../../design/tokens'
+import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { useGame } from '../../store/game'
 import { useSettings } from '../../store/settings'
 import { fxBus } from '../choreo/bus'
 import { ALL_SQUARES, isLightSquare, positionToSquare, squareToPosition } from '../coords'
 import { hover } from '../interaction/state'
-import { materials } from '../materials'
+import { useLook } from '../look'
+import { linkMaterial, materials } from '../materials'
+import { withDepth } from '../materials/depth'
 import { mulberry32 } from '../materials/marble'
 import { RIPPLE } from './ripple'
 import { rippleUniforms, withRipple } from './rippleMaterial'
@@ -91,6 +92,63 @@ function frameGeometry(): THREE.BufferGeometry {
   return flat(g, FRAME_TOP - FRAME_DEPTH - FRAME_BEVEL)
 }
 
+const ICE_BEVEL = 0.07
+
+/** Smooth closed noise along the frame's perimeter: a few sines with seeded phases. */
+function swell(t: number, phases: readonly number[]): number {
+  let v = 0
+  phases.forEach((p, i) => {
+    const f = [5, 11, 23, 37][i]
+    v += Math.sin(t * Math.PI * 2 * f + p) / (i + 1.4)
+  })
+  return v
+}
+
+/**
+ * Glacier frame: the same ring, but the outer edge is molten ice. Its outline bulges in and out,
+ * its top swells near the edge, and normals are smoothed so the ripples catch highlights.
+ */
+function iceFrameGeometry(): THREE.BufferGeometry {
+  const rand = mulberry32(31)
+  const phases = [0, 0, 0, 0].map(() => rand() * Math.PI * 2)
+  const lift = [0, 0, 0, 0].map(() => rand() * Math.PI * 2)
+  const base = squarePath(new THREE.Path(), FRAME_OUTER - 0.06, 0.3).getSpacedPoints(720)
+  base.pop()
+  const outline = base.map((p, i) => {
+    const t = i / base.length
+    const len = Math.hypot(p.x, p.y)
+    const k = 1 + (0.035 * swell(t, phases)) / len
+    return new THREE.Vector2(p.x * k, p.y * k)
+  })
+  const shape = new THREE.Shape(outline)
+  shape.holes.push(squarePath(new THREE.Path(), FRAME_INNER, 0.14))
+  const g = new THREE.ExtrudeGeometry(shape, {
+    depth: FRAME_DEPTH,
+    bevelEnabled: true,
+    bevelThickness: ICE_BEVEL,
+    bevelSize: ICE_BEVEL,
+    bevelSegments: 6,
+    curveSegments: 8,
+  })
+  g.deleteAttribute('normal')
+  g.deleteAttribute('uv')
+  const welded = mergeVertices(g, 1e-4)
+  flat(welded, FRAME_TOP - FRAME_DEPTH - ICE_BEVEL)
+  // Swell the top toward the outer edge, never over the label band.
+  const pos = welded.getAttribute('position')
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i)
+    const z = pos.getZ(i)
+    const y = pos.getY(i)
+    const edge = THREE.MathUtils.smoothstep(Math.max(Math.abs(x), Math.abs(z)), LABEL_BAND[1], FRAME_OUTER + 0.05)
+    const up = THREE.MathUtils.smoothstep(y, TABLE_Y, FRAME_TOP)
+    const t = (Math.atan2(z, x) / (Math.PI * 2) + 1) % 1
+    pos.setY(i, y + edge * up * 0.03 * (1 + swell(t, lift)))
+  }
+  welded.computeVertexNormals()
+  return welded
+}
+
 function labelGeometry(): THREE.BufferGeometry {
   const g = new THREE.ShapeGeometry(ring(LABEL_BAND[1], LABEL_BAND[0]))
   const pos = g.getAttribute('position')
@@ -159,12 +217,13 @@ function useLabelTexture(): THREE.CanvasTexture {
 }
 
 const geometries = (() => {
-  let built: Record<'light' | 'dark' | 'frame' | 'inlay' | 'labels', THREE.BufferGeometry> | null = null
+  let built: Record<'light' | 'dark' | 'frame' | 'iceFrame' | 'inlay' | 'labels', THREE.BufferGeometry> | null = null
   return () =>
     (built ??= {
       light: squaresGeometry(true),
       dark: squaresGeometry(false),
       frame: frameGeometry(),
+      iceFrame: iceFrameGeometry(),
       inlay: flat(new THREE.ShapeGeometry(ring(INLAY[1], INLAY[0])), FRAME_TOP + 0.0015),
       labels: labelGeometry(),
     })
@@ -172,7 +231,11 @@ const geometries = (() => {
 
 const rippleMaterials = (() => {
   let built: { light: THREE.MeshPhysicalMaterial; dark: THREE.MeshPhysicalMaterial } | null = null
-  return () => (built ??= { light: withRipple(materials().squareLight), dark: withRipple(materials().squareDark) })
+  return () =>
+    (built ??= {
+      light: linkMaterial('squareLight', withRipple(materials().squareLight)),
+      dark: linkMaterial('squareDark', withDepth(withRipple(materials().squareDark))),
+    })
 })()
 
 /** Knight landings send a wave through the tiles; slots are reused round-robin. */
@@ -207,6 +270,8 @@ export function Board({ room }: { room: string }) {
   const g = geometries()
   const squares = rippleMaterials()
   const labels = useLabelTexture()
+  const look = useLook()
+  const set = useSettings((s) => s.boardSet)
   useBoardRipple()
 
   return (
@@ -217,11 +282,11 @@ export function Board({ room }: { room: string }) {
       <mesh position={[0, -0.03, 0]} material={m.frame}>
         <boxGeometry args={[8.1, 0.05, 8.1]} />
       </mesh>
-      <mesh geometry={g.frame} material={m.frame} castShadow receiveShadow />
+      <mesh geometry={set === 'glacier' ? g.iceFrame : g.frame} material={m.frame} castShadow receiveShadow />
       <mesh geometry={g.inlay} material={m.brass} receiveShadow />
       <mesh geometry={g.labels} renderOrder={1}>
         <meshStandardMaterial
-          color={scene.brass}
+          color={look.brass}
           metalness={0.85}
           roughness={0.38}
           alphaMap={labels}

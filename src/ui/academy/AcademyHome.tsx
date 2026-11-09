@@ -88,7 +88,7 @@ function Overall({ mastered, total, states }: { mastered: number; total: number;
 function ContinueCard({ skill, state, started, reduced }: { skill?: Skill; state?: SkillState; started: boolean; reduced: boolean }) {
   if (!skill || !state) {
     return (
-      <div className="rounded-md border border-line-strong bg-surface p-6">
+      <div className="glass rounded-md border border-line-strong bg-surface p-6">
         <p className={`${labelClass} m-0`}>Complete</p>
         <p className="atelier-display m-0 mt-3 text-2xl text-text">Every skill is mastered.</p>
         <p className="m-0 mt-2 text-sm text-text-muted">Revisit any lesson on the map, or test yourself in a game.</p>
@@ -102,7 +102,7 @@ function ContinueCard({ skill, state, started, reduced }: { skill?: Skill; state
     <Link
       href={`/academy/${skill.id}`}
       aria-label={`${eyebrow}: ${skill.title}, ${level.title}, ${skill.minutes} minutes, ${STATE_LABEL[state].toLowerCase()}`}
-      className="group relative block overflow-hidden rounded-md border border-line-strong bg-surface p-6 no-underline shadow-md outline-none transition-shadow duration-base ease-standard hover:shadow-glow focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
+      className="glass group relative block overflow-hidden rounded-md border border-line-strong bg-surface p-6 no-underline shadow-md outline-none transition-shadow duration-base ease-standard hover:shadow-glow focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
     >
       {/* Brass hairline, brightest at the centre, like a lit edge. */}
       <span aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-strong to-transparent" />

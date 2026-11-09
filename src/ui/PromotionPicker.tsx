@@ -43,7 +43,7 @@ function PromotionDialog() {
 
   return (
     <motion.div
-      className="absolute inset-0 z-20 grid place-items-center bg-bg/70 p-4"
+      className="glass-scrim absolute inset-0 z-20 grid place-items-center bg-bg/70 p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -59,7 +59,7 @@ function PromotionDialog() {
         initial={{ y: 12, scale: 0.98 }}
         animate={{ y: 0, scale: 1, transition: { duration: sec('slow'), ease: bezier('enter') } }}
         exit={{ y: 6, transition: { duration: sec('fast'), ease: bezier('exit') } }}
-        className="max-w-full rounded-xs border border-line-strong bg-surface p-5 shadow-lg outline-none"
+        className="glass max-w-full rounded-xs border border-line-strong bg-surface p-5 shadow-lg outline-none"
       >
         <p className={`${labelClass} m-0 mb-4`}>Promote to</p>
         <div className="grid grid-cols-4 gap-2 sm:gap-3">

@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useRef, useState } from 'react'
+import type { BoardSet } from '../design/tokens'
 import { useSettings } from '../store/settings'
 import type { QualityTier, ThemePreference } from '../store/types'
 import { bezier, sec } from './motionTokens'
@@ -12,6 +13,10 @@ type MotionChoice = 'system' | 'on' | 'off'
 type SoundChoice = 'on' | 'off'
 type TacticsChoice = 'on' | 'off'
 
+const SETS: readonly { value: BoardSet; label: string }[] = [
+  { value: 'glacier', label: 'Glacier' },
+  { value: 'atelier', label: 'Atelier' },
+]
 const THEMES: readonly { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
   { value: 'light', label: 'Light' },
@@ -76,7 +81,7 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
       exit={{ opacity: 0 }}
       transition={{ duration: sec('fast'), ease: bezier('standard') }}
     >
-      <div aria-hidden onClick={onClose} className="absolute inset-0 bg-bg/60 lg:bg-transparent" />
+      <div aria-hidden onClick={onClose} className="glass-scrim-sheet absolute inset-0 bg-bg/60 lg:bg-transparent" />
       <motion.div
         ref={ref}
         role="dialog"
@@ -85,7 +90,7 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
         initial={{ y: 16 }}
         animate={{ y: 0, transition: enter }}
         exit={{ y: 8, transition: { duration: sec('fast'), ease: bezier('exit') } }}
-        className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col gap-6 overflow-y-auto border-t border-line-strong bg-surface2 px-4 pb-6 pt-3 shadow-lg outline-none lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-16 lg:w-80 lg:rounded-xs lg:border lg:px-5 lg:pt-3"
+        className="glass absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col gap-6 overflow-y-auto border-t border-line-strong bg-surface2 px-4 pb-6 pt-3 shadow-lg outline-none lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-16 lg:w-80 lg:rounded-xs lg:border lg:px-5 lg:pt-3"
       >
         <div className="flex items-center justify-between">
           <h2 className="atelier-display m-0 text-xl font-light text-text">Settings</h2>
@@ -93,6 +98,7 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
             <CloseIcon />
           </button>
         </div>
+        <Segmented legend="Board set" columns={2} options={SETS} value={s.boardSet} onChange={s.setBoardSet} />
         <Segmented legend="Theme" columns={3} options={THEMES} value={s.theme} onChange={s.setTheme} />
         <div>
           <Segmented

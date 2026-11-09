@@ -1,10 +1,10 @@
 import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
 import * as THREE from 'three'
-import { scene } from '../../design/tokens'
 import type { Square, Tactic } from '../../rules/types'
 import { useSettings } from '../../store/settings'
 import { squareToPosition } from '../coords'
+import { look } from '../look'
 import { PIECE_HEIGHT } from '../pieces/profiles'
 import { flatPlane, hdr, particleGeometry, shellGeometry, stripGeometry } from './geometry'
 import { clamp01, easeFn, useOwned, type FxProps } from './life'
@@ -33,12 +33,13 @@ const END_FADE_REDUCED = 0.12
 /** Non-primary tactics draw at this share of the primary's intensity (T4). */
 const SECONDARY = 0.55
 
-const LINE = hdr(scene.brass, 2.1)
-const HEAD = hdr('#fff1d6', 3.2)
-const HOT = hdr('#fff8ec', 4.5)
-const SPARK = hdr('#ffe2a8', 3.4)
-const GHOST = hdr('#e9dfcc', 1.3)
-const EMBER = hdr('#a8763f', 1.1)
+// Built per use, not at module load, so a board-set switch applies to the next effect.
+const LINE = () => hdr(look().brass, 2.1)
+const HEAD = () => hdr(look().glow, 3.2)
+const HOT = () => hdr(look().glow, 4.5)
+const SPARK = () => hdr(look().glow, 3.4)
+const GHOST = () => hdr('#e9dfcc', 1.3)
+const EMBER = () => hdr('#a8763f', 1.1)
 
 interface Frame {
   /** Seconds since the tactic arrived. */
@@ -110,18 +111,18 @@ interface SigilLook {
   readonly square?: boolean
 }
 
-function sigil(look: SigilLook): THREE.ShaderMaterial {
+function sigil(o: SigilLook): THREE.ShaderMaterial {
   const m = sigilMaterial()
   const u = m.uniforms
-  u.uColor.value.copy(look.color)
-  u.uRadius.value = look.radius ?? 0.4
-  u.uWidth.value = look.width ?? 0.03
-  u.uFill.value = look.fill ?? 0
-  u.uHalf.value = look.half ?? 0.6
-  u.uSegments.value = look.segments ?? 0
-  u.uGap.value = look.gap ?? 0
-  u.uSpin.value = look.spin ?? 0
-  u.uSquare.value = look.square ? 1 : 0
+  u.uColor.value.copy(o.color)
+  u.uRadius.value = o.radius ?? 0.4
+  u.uWidth.value = o.width ?? 0.03
+  u.uFill.value = o.fill ?? 0
+  u.uHalf.value = o.half ?? 0.6
+  u.uSegments.value = o.segments ?? 0
+  u.uGap.value = o.gap ?? 0
+  u.uSpin.value = o.spin ?? 0
+  u.uSquare.value = o.square ? 1 : 0
   return m
 }
 
@@ -134,16 +135,16 @@ interface BeamLook {
   readonly tail?: number
 }
 
-function beam(length: number, look: BeamLook): THREE.ShaderMaterial {
+function beam(length: number, o: BeamLook): THREE.ShaderMaterial {
   const m = stripMaterial()
   const u = m.uniforms
-  u.uColor.value.copy(look.color)
-  u.uHeadColor.value.copy(look.head)
+  u.uColor.value.copy(o.color)
+  u.uHeadColor.value.copy(o.head)
   u.uLength.value = length
-  u.uCore.value = look.core
-  u.uHalo.value = look.halo
-  u.uDash.value = look.dash ?? 1.6
-  u.uTail.value = look.tail ?? 0
+  u.uCore.value = o.core
+  u.uHalo.value = o.halo
+  u.uDash.value = o.dash ?? 1.6
+  u.uTail.value = o.tail ?? 0
   return m
 }
 
@@ -195,7 +196,7 @@ function burst(count: number, origin: THREE.Vector3Like, delay: number, speed: n
 
 function sparkMaterial(): THREE.ShaderMaterial {
   const m = particleMaterial(true)
-  m.uniforms.uColor.value.copy(SPARK)
+  m.uniforms.uColor.value.copy(SPARK())
   m.uniforms.uDrag.value = 4
   m.uniforms.uGravity.value = -1.2
   m.uniforms.uFlicker.value = 1
@@ -223,14 +224,14 @@ function Fork({ t, weight, startedAt, density, ending, onDone }: PartProps<'fork
     const branches = targets.map((p) => boardStrip(split, p, Y_LINE + 0.001, 0.1, 0))
     return bundle({
       trunkGeo: trunk.geometry,
-      trunkMat: beam(trunk.length, { color: LINE, head: HEAD, core: 0.32, halo: 0.32 }),
+      trunkMat: beam(trunk.length, { color: LINE(), head: HEAD(), core: 0.32, halo: 0.32 }),
       branchGeo: branches.map((b) => b.geometry),
-      branchMat: branches.map((b) => beam(b.length, { color: LINE, head: HEAD, core: 0.28, halo: 0.3 })),
+      branchMat: branches.map((b) => beam(b.length, { color: LINE(), head: HEAD(), core: 0.28, halo: 0.3 })),
       trunkShade: shade(trunk.length, 0.7),
       branchShade: branches.map((b) => shade(b.length, 0.7)),
-      rings: targets.map(() => sigil({ color: hdr(scene.brass, 2.4), radius: 0.4, width: 0.03 })),
-      reticles: targets.map(() => sigil({ color: HEAD, radius: 0.31, width: 0.016, segments: 4, gap: 0.55, spin: Math.PI / 4 })),
-      splitMat: sigil({ color: HOT, radius: 0.05, width: 0.05, fill: 1 }),
+      rings: targets.map(() => sigil({ color: hdr(look().brass, 2.4), radius: 0.4, width: 0.03 })),
+      reticles: targets.map(() => sigil({ color: HEAD(), radius: 0.31, width: 0.016, segments: 4, gap: 0.55, spin: Math.PI / 4 })),
+      splitMat: sigil({ color: HOT(), radius: 0.05, width: 0.05, fill: 1 }),
       sparkGeo: burst(Math.round(18 * density), { x: split.x, y: 0.05, z: split.z }, trunkTime, 1.6, 0.6),
       sparkMat: sparkMaterial(),
     })
@@ -298,8 +299,8 @@ function Pin({ t, weight, startedAt, ending, onDone }: PartProps<'pin'>) {
     const chain = boardStrip(a, behind, Y_LINE, 0.1, 0)
     const m = chainMaterial()
     const u = m.uniforms
-    u.uColor.value.copy(hdr(scene.brass, t.absolute ? 2.5 : 2.1))
-    u.uHotColor.value.copy(HOT)
+    u.uColor.value.copy(hdr(look().brass, t.absolute ? 2.5 : 2.1))
+    u.uHotColor.value.copy(HOT())
     u.uLength.value = chain.length
     u.uLinkLen.value = 0.2
     u.uHalfW.value = 0.1
@@ -307,9 +308,9 @@ function Pin({ t, weight, startedAt, ending, onDone }: PartProps<'pin'>) {
       chainGeo: chain.geometry,
       chainMat: m,
       chainShade: shade(chain.length, 0.8),
-      lock: sigil({ color: hdr(scene.brass, 2.6), radius: 0.41, width: 0.034, segments: 4, gap: 0.7 }),
-      inner: sigil({ color: HEAD, radius: 0.32, width: 0.016 }),
-      shield: sigil({ color: hdr(scene.brass, 1.6), radius: 0.36, width: 0.02, segments: t.absolute ? 0 : 6, gap: 0.3 }),
+      lock: sigil({ color: hdr(look().brass, 2.6), radius: 0.41, width: 0.034, segments: 4, gap: 0.7 }),
+      inner: sigil({ color: HEAD(), radius: 0.32, width: 0.016 }),
+      shield: sigil({ color: hdr(look().brass, 1.6), radius: 0.36, width: 0.02, segments: t.absolute ? 0 : 6, gap: 0.3 }),
     })
   })
   useTacticLife(startedAt, ending, weight, onDone, (f) => {
@@ -364,17 +365,17 @@ function Skewer({ t, weight, startedAt, density, ending, onDone }: PartProps<'sk
     const low = boardStrip(a, behind, 0.022, 0.07, 0)
     return bundle({
       highGeo: high.geometry,
-      highMat: beam(high.length, { color: hdr('#ffd99a', 2.8), head: hdr('#fffaf0', 6), core: 0.3, halo: 0.22 }),
+      highMat: beam(high.length, { color: hdr(look().glow, 2.8), head: hdr(look().glow, 6), core: 0.3, halo: 0.22 }),
       lowGeo: low.geometry,
-      lowMat: beam(low.length, { color: hdr(scene.brass, 1.5), head: HEAD, core: 0.25, halo: 0.25 }),
+      lowMat: beam(low.length, { color: hdr(look().brass, 1.5), head: HEAD(), core: 0.25, halo: 0.25 }),
       lowShade: shade(low.length, 0.6),
       shell: (() => {
         const m = shellMaterial()
-        m.uniforms.uColor.value.copy(HOT)
-        m.uniforms.uTopColor.value.copy(hdr(scene.brass, 1.2))
+        m.uniforms.uColor.value.copy(HOT())
+        m.uniforms.uTopColor.value.copy(hdr(look().brass, 1.2))
         return m
       })(),
-      pierce: sigil({ color: hdr(scene.brass, 2.4), radius: 0.4, width: 0.03, segments: 2, gap: 0.28, spin: Math.atan2(dir[1], dir[0]) }),
+      pierce: sigil({ color: hdr(look().brass, 2.4), radius: 0.4, width: 0.03, segments: 2, gap: 0.28, spin: Math.atan2(dir[1], dir[0]) }),
       sprayGeo: burst(Math.round(16 * density), { x: front.x, y: BEAM_Y, z: front.z }, hitAt, 2.2, 0.5, dir),
       sprayMat: sparkMaterial(),
     })
@@ -433,17 +434,17 @@ function Discovered({ t, weight, startedAt, ending, onDone }: PartProps<'discove
     const line = boardStrip(a, target, Y_LINE, 0.11, 0)
     return bundle({
       lineGeo: line.geometry,
-      lineMat: beam(line.length, { color: LINE, head: HEAD, core: 0.3, halo: 0.32 }),
+      lineMat: beam(line.length, { color: LINE(), head: HEAD(), core: 0.3, halo: 0.32 }),
       lineShade: shade(line.length, 0.7),
       curtainGeo: curtainGeometry(a, target),
       curtainMat: (() => {
-        const m = beam(len, { color: hdr(scene.brass, 1.4), head: HEAD, core: 0.05, halo: 0.75 })
+        const m = beam(len, { color: hdr(look().brass, 1.4), head: HEAD(), core: 0.05, halo: 0.75 })
         m.uniforms.uWave.value = 0.08
         return m
       })(),
-      ghost: sigil({ color: GHOST, radius: 0.36, width: 0.022, segments: 10, gap: 0.45 }),
-      echo: sigil({ color: GHOST, radius: 0.2, width: 0.05 }),
-      mark: sigil({ color: hdr(scene.brass, 2.4), radius: 0.4, width: 0.03 }),
+      ghost: sigil({ color: GHOST(), radius: 0.36, width: 0.022, segments: 10, gap: 0.45 }),
+      echo: sigil({ color: GHOST(), radius: 0.2, width: 0.05 }),
+      mark: sigil({ color: hdr(look().brass, 2.4), radius: 0.4, width: 0.03 }),
     })
   })
   useTacticLife(startedAt, ending, weight, onDone, (f) => {
@@ -489,13 +490,13 @@ function DoubleCheck({ t, weight, startedAt, density, ending, onDone }: PartProp
     const comets = t.checkers.map((c) => boardStrip(point2(c), king, 0.075, 0.07, 0))
     return bundle({
       cometGeo: comets.map((c) => c.geometry),
-      cometMat: comets.map((c) => beam(c.length, { color: hdr('#ffdca0', 2.6), head: HOT, core: 0.3, halo: 0.25, tail: 0.35 })),
-      flare: sigil({ color: HOT, radius: 0.1, width: 0.08, fill: 1, half: 1 }),
+      cometMat: comets.map((c) => beam(c.length, { color: hdr(look().glow, 2.6), head: HOT(), core: 0.3, halo: 0.25, tail: 0.35 })),
+      flare: sigil({ color: HOT(), radius: 0.1, width: 0.08, fill: 1, half: 1 }),
       flareGeo: burst(Math.round(26 * density), { x: king.x, y: 0.45, z: king.z }, COMET, 1.4, 2.2),
       flareMat: sparkMaterial(),
-      crown: sigil({ color: hdr(scene.brass, 2.8), radius: 0.24, width: 0.03, segments: 5, gap: 0.32, half: 0.4 }),
-      band: sigil({ color: HEAD, radius: 0.16, width: 0.014, half: 0.4 }),
-      base: sigil({ color: hdr(scene.brass, 1.8), radius: 0.42, width: 0.025 }),
+      crown: sigil({ color: hdr(look().brass, 2.8), radius: 0.24, width: 0.03, segments: 5, gap: 0.32, half: 0.4 }),
+      band: sigil({ color: HEAD(), radius: 0.16, width: 0.014, half: 0.4 }),
+      base: sigil({ color: hdr(look().brass, 1.8), radius: 0.42, width: 0.025 }),
     })
   })
   useTacticLife(startedAt, ending, weight, onDone, (f) => {
@@ -554,9 +555,9 @@ function BackRank({ t, weight, startedAt, ending, onDone }: PartProps<'backRank'
     const band = boardStrip({ x: -4, z }, { x: 4, z }, 0.02, 0.48, 0)
     return bundle({
       bandGeo: band.geometry,
-      bandMat: beam(band.length, { color: hdr(scene.brass, 1.3), head: hdr('#fff1d6', 2.4), core: 0.85, halo: 0.15, dash: 0.8 }),
-      entryMat: sigil({ color: hdr(scene.brass, 2.4), radius: 0.43, width: 0.03, square: true }),
-      escapes: escapes.map(() => sigil({ color: EMBER, radius: 0.4, width: 0.03, fill: 0.12, square: true })),
+      bandMat: beam(band.length, { color: hdr(look().brass, 1.3), head: hdr(look().glow, 2.4), core: 0.85, halo: 0.15, dash: 0.8 }),
+      entryMat: sigil({ color: hdr(look().brass, 2.4), radius: 0.43, width: 0.03, square: true }),
+      escapes: escapes.map(() => sigil({ color: EMBER(), radius: 0.4, width: 0.03, fill: 0.12, square: true })),
       soot: escapes.map(() => {
         const m = sigil({ color: new THREE.Color('#2a1608'), radius: 0.36, width: 0.08, fill: 0.5, square: true })
         m.blending = THREE.NormalBlending
@@ -602,11 +603,11 @@ function Sacrifice({ t, weight, startedAt, density, ending, onDone }: PartProps<
   const haloY = PIECE_HEIGHT[t.piece] + 0.1
   const r = useOwned(() => {
     const outer = shellMaterial()
-    outer.uniforms.uColor.value.copy(hdr('#fff0d8', 1.5))
-    outer.uniforms.uTopColor.value.copy(hdr(scene.brass, 1))
+    outer.uniforms.uColor.value.copy(hdr(look().glow, 1.5))
+    outer.uniforms.uTopColor.value.copy(hdr(look().brass, 1))
     const core = shellMaterial()
-    core.uniforms.uColor.value.copy(hdr('#fffaf0', 1.7))
-    core.uniforms.uTopColor.value.copy(hdr(scene.legal, 1.2))
+    core.uniforms.uColor.value.copy(hdr(look().glow, 1.7))
+    core.uniforms.uTopColor.value.copy(hdr(look().legal, 1.2))
     core.uniforms.uRim.value = 0.3
     const motes = particleGeometry(Math.round(16 * density), (_, s) => {
       const a = Math.random() * Math.PI * 2
@@ -616,7 +617,7 @@ function Sacrifice({ t, weight, startedAt, density, ending, onDone }: PartProps<
       s.meta.set(Math.random() * 0.5, 0.6 + Math.random() * 0.4, 0.035 + Math.random() * 0.02, Math.random())
     })
     const moteMat = particleMaterial(true)
-    moteMat.uniforms.uColor.value.copy(SPARK)
+    moteMat.uniforms.uColor.value.copy(SPARK())
     moteMat.uniforms.uSwirl.value = 2
     moteMat.uniforms.uFlicker.value = 1
     moteMat.uniforms.uSoft.value = 2.2
@@ -625,8 +626,8 @@ function Sacrifice({ t, weight, startedAt, density, ending, onDone }: PartProps<
       core,
       motes,
       moteMat,
-      halo: sigil({ color: hdr('#ffe4b0', 2.6), radius: 0.2, width: 0.022, fill: 0.08, half: 0.35 }),
-      base: sigil({ color: hdr(scene.brass, 1.8), radius: 0.42, width: 0.025 }),
+      halo: sigil({ color: hdr(look().glow, 2.6), radius: 0.2, width: 0.022, fill: 0.08, half: 0.35 }),
+      base: sigil({ color: hdr(look().brass, 1.8), radius: 0.42, width: 0.025 }),
     })
   })
   const halo = useRef<THREE.Mesh>(null)

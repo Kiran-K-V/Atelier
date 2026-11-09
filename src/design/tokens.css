@@ -32,10 +32,10 @@
   --radius-md: 12px;
   --radius-lg: 20px;
   --radius-pill: 999px;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.18), 0 1px 1px rgba(0,0,0,0.10);
-  --shadow-md: 0 6px 18px -6px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.12);
-  --shadow-lg: 0 24px 48px -16px rgba(0,0,0,0.5), 0 6px 16px rgba(0,0,0,0.18);
-  --shadow-glow: 0 0 0 1px rgba(201,163,91,0.35), 0 0 24px -4px rgba(201,163,91,0.45);
+  --shadow-sm: 0 1px 2px rgba(var(--c-shadow-rgb),0.18), 0 1px 1px rgba(var(--c-shadow-rgb),0.10);
+  --shadow-md: 0 6px 18px -6px rgba(var(--c-shadow-rgb),0.35), 0 2px 6px rgba(var(--c-shadow-rgb),0.12);
+  --shadow-lg: 0 24px 48px -16px rgba(var(--c-shadow-rgb),0.5), 0 6px 16px rgba(var(--c-shadow-rgb),0.18);
+  --shadow-glow: 0 0 0 1px rgba(var(--c-glow-rgb),0.35), 0 0 24px -4px rgba(var(--c-glow-rgb),0.45);
   --duration-instant: 80ms;
   --duration-fast: 160ms;
   --duration-base: 240ms;
@@ -50,7 +50,109 @@
   --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-:root, :root[data-theme='dark'] {
+:root:not([data-set='atelier']) {
+  color-scheme: dark;
+  --c-bg: #020a12;
+  --c-surface: rgba(4, 22, 40, 0.74);
+  --c-surface2: rgba(6, 30, 52, 0.80);
+  --c-surface3: rgba(9, 42, 68, 0.85);
+  --c-line: rgba(190, 236, 250, 0.12);
+  --c-line-strong: rgba(190, 236, 250, 0.26);
+  --c-text: #e8f7fc;
+  --c-text-muted: #93b9c7;
+  --c-text-faint: #5d8392;
+  --c-accent: #4fd2ea;
+  --c-accent-strong: #9ae9f8;
+  --c-accent-ink: #02202a;
+  --c-danger: #ff7b6b;
+  --c-success: #6fe0b4;
+  --c-focus: #9ae9f8;
+  --c-glow-rgb: 79, 210, 234;
+  --c-shadow-rgb: 0, 5, 11;
+  --c-glass-edge: rgba(200, 238, 255, 0.28);
+  --c-glass-lift: 0 28px 56px -22px rgba(0, 5, 11, 0.75), 0 6px 14px -6px rgba(0, 5, 11, 0.45);
+  --c-glass-wash: linear-gradient(158deg, rgba(120, 205, 240, 0.10), rgba(120, 205, 240, 0.01) 55%), linear-gradient(rgba(1, 8, 15, 0.34), rgba(1, 8, 15, 0.34));
+  --c-page-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 8 -5.95'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E"), radial-gradient(1.5px 1.5px at 22% 31%, rgba(255,255,255,0.34), transparent) 0 0 / 190px 230px, radial-gradient(1px 1px at 71% 62%, rgba(255,255,255,0.255), transparent) 0 0 / 130px 150px, radial-gradient(135% 105% at 50% 45%, transparent 52%, rgba(0, 3, 8, 0.72) 100%), radial-gradient(46% 30% at 74% 4%, rgba(130, 225, 248, 0.14), transparent 70%), radial-gradient(80% 46% at 38% -8%, rgba(52, 160, 208, 0.30), transparent 72%), radial-gradient(70% 45% at 100% 100%, rgba(8, 70, 110, 0.35), transparent 70%), linear-gradient(172deg, #05213a 0%, #031526 38%, #020a12 100%);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-set='atelier']):not([data-theme='dark']) {
+    color-scheme: light;
+  --c-bg: #edf5f8;
+    --c-surface: rgba(255, 255, 255, 0.72);
+    --c-surface2: rgba(240, 248, 251, 0.82);
+    --c-surface3: rgba(222, 238, 245, 0.88);
+    --c-line: rgba(8, 48, 64, 0.12);
+    --c-line-strong: rgba(8, 48, 64, 0.24);
+    --c-text: #05202e;
+    --c-text-muted: #3f6377;
+    --c-text-faint: #7d9aa6;
+    --c-accent: #0a5a7c;
+    --c-accent-strong: #083f5c;
+    --c-accent-ink: #f1fbfd;
+    --c-danger: #b83a2b;
+    --c-success: #21785a;
+    --c-focus: #083f5c;
+    --c-glow-rgb: 10, 90, 124;
+    --c-shadow-rgb: 8, 52, 72;
+    --c-glass-edge: rgba(255, 255, 255, 0.95);
+    --c-glass-lift: 0 18px 40px -24px rgba(6, 40, 62, 0.34), 0 2px 8px -4px rgba(6, 40, 62, 0.2);
+    --c-glass-wash: linear-gradient(158deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.14) 60%);
+    --c-page-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.45 0 0 0 0 0.6 0 0 0 8 -5.95'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='0.3'/%3E%3C/svg%3E"), radial-gradient(1.5px 1.5px at 22% 31%, rgba(255,255,255,0.8), transparent) 0 0 / 190px 230px, radial-gradient(1px 1px at 71% 62%, rgba(255,255,255,0.6000000000000001), transparent) 0 0 / 130px 150px, radial-gradient(120% 70% at 10% -12%, rgba(255, 255, 255, 0.95), transparent 62%), radial-gradient(90% 60% at 100% 105%, rgba(150, 205, 226, 0.1), transparent 66%), linear-gradient(165deg, #f4fbfe 0%, #e0eff5 50%, #d3e8f1 100%);
+  }
+}
+
+:root:not([data-set='atelier'])[data-theme='light'] {
+  color-scheme: light;
+  --c-bg: #edf5f8;
+  --c-surface: rgba(255, 255, 255, 0.72);
+  --c-surface2: rgba(240, 248, 251, 0.82);
+  --c-surface3: rgba(222, 238, 245, 0.88);
+  --c-line: rgba(8, 48, 64, 0.12);
+  --c-line-strong: rgba(8, 48, 64, 0.24);
+  --c-text: #05202e;
+  --c-text-muted: #3f6377;
+  --c-text-faint: #7d9aa6;
+  --c-accent: #0a5a7c;
+  --c-accent-strong: #083f5c;
+  --c-accent-ink: #f1fbfd;
+  --c-danger: #b83a2b;
+  --c-success: #21785a;
+  --c-focus: #083f5c;
+  --c-glow-rgb: 10, 90, 124;
+  --c-shadow-rgb: 8, 52, 72;
+  --c-glass-edge: rgba(255, 255, 255, 0.95);
+  --c-glass-lift: 0 18px 40px -24px rgba(6, 40, 62, 0.34), 0 2px 8px -4px rgba(6, 40, 62, 0.2);
+  --c-glass-wash: linear-gradient(158deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.14) 60%);
+  --c-page-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.45 0 0 0 0 0.6 0 0 0 8 -5.95'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='0.3'/%3E%3C/svg%3E"), radial-gradient(1.5px 1.5px at 22% 31%, rgba(255,255,255,0.8), transparent) 0 0 / 190px 230px, radial-gradient(1px 1px at 71% 62%, rgba(255,255,255,0.6000000000000001), transparent) 0 0 / 130px 150px, radial-gradient(120% 70% at 10% -12%, rgba(255, 255, 255, 0.95), transparent 62%), radial-gradient(90% 60% at 100% 105%, rgba(150, 205, 226, 0.1), transparent 66%), linear-gradient(165deg, #f4fbfe 0%, #e0eff5 50%, #d3e8f1 100%);
+}
+
+:root:not([data-set='atelier'])[data-theme='dark'] {
+  color-scheme: dark;
+  --c-bg: #020a12;
+  --c-surface: rgba(4, 22, 40, 0.74);
+  --c-surface2: rgba(6, 30, 52, 0.80);
+  --c-surface3: rgba(9, 42, 68, 0.85);
+  --c-line: rgba(190, 236, 250, 0.12);
+  --c-line-strong: rgba(190, 236, 250, 0.26);
+  --c-text: #e8f7fc;
+  --c-text-muted: #93b9c7;
+  --c-text-faint: #5d8392;
+  --c-accent: #4fd2ea;
+  --c-accent-strong: #9ae9f8;
+  --c-accent-ink: #02202a;
+  --c-danger: #ff7b6b;
+  --c-success: #6fe0b4;
+  --c-focus: #9ae9f8;
+  --c-glow-rgb: 79, 210, 234;
+  --c-shadow-rgb: 0, 5, 11;
+  --c-glass-edge: rgba(200, 238, 255, 0.28);
+  --c-glass-lift: 0 28px 56px -22px rgba(0, 5, 11, 0.75), 0 6px 14px -6px rgba(0, 5, 11, 0.45);
+  --c-glass-wash: linear-gradient(158deg, rgba(120, 205, 240, 0.10), rgba(120, 205, 240, 0.01) 55%), linear-gradient(rgba(1, 8, 15, 0.34), rgba(1, 8, 15, 0.34));
+  --c-page-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 8 -5.95'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E"), radial-gradient(1.5px 1.5px at 22% 31%, rgba(255,255,255,0.34), transparent) 0 0 / 190px 230px, radial-gradient(1px 1px at 71% 62%, rgba(255,255,255,0.255), transparent) 0 0 / 130px 150px, radial-gradient(135% 105% at 50% 45%, transparent 52%, rgba(0, 3, 8, 0.72) 100%), radial-gradient(46% 30% at 74% 4%, rgba(130, 225, 248, 0.14), transparent 70%), radial-gradient(80% 46% at 38% -8%, rgba(52, 160, 208, 0.30), transparent 72%), radial-gradient(70% 45% at 100% 100%, rgba(8, 70, 110, 0.35), transparent 70%), linear-gradient(172deg, #05213a 0%, #031526 38%, #020a12 100%);
+}
+
+:root[data-set='atelier'] {
   color-scheme: dark;
   --c-bg: #0e0d0b;
   --c-surface: #171512;
@@ -67,30 +169,34 @@
   --c-danger: #e0614e;
   --c-success: #7fb38a;
   --c-focus: #e2c27f;
+  --c-glow-rgb: 201, 163, 91;
+  --c-shadow-rgb: 0, 0, 0;
 }
 
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme='dark']) {
+  :root[data-set='atelier']:not([data-theme='dark']) {
     color-scheme: light;
   --c-bg: #f4f0e8;
-  --c-surface: #fbf9f4;
-  --c-surface2: #ece6da;
-  --c-surface3: #e2dacb;
-  --c-line: rgba(30, 24, 16, 0.12);
-  --c-line-strong: rgba(30, 24, 16, 0.24);
-  --c-text: #1b1813;
-  --c-text-muted: #6b6356;
-  --c-text-faint: #9a9182;
-  --c-accent: #9a7432;
-  --c-accent-strong: #7d5d22;
-  --c-accent-ink: #fbf6ea;
-  --c-danger: #b8412f;
-  --c-success: #3e7a4e;
-  --c-focus: #9a7432;
+    --c-surface: #fbf9f4;
+    --c-surface2: #ece6da;
+    --c-surface3: #e2dacb;
+    --c-line: rgba(30, 24, 16, 0.12);
+    --c-line-strong: rgba(30, 24, 16, 0.24);
+    --c-text: #1b1813;
+    --c-text-muted: #6b6356;
+    --c-text-faint: #9a9182;
+    --c-accent: #9a7432;
+    --c-accent-strong: #7d5d22;
+    --c-accent-ink: #fbf6ea;
+    --c-danger: #b8412f;
+    --c-success: #3e7a4e;
+    --c-focus: #9a7432;
+    --c-glow-rgb: 201, 163, 91;
+    --c-shadow-rgb: 0, 0, 0;
   }
 }
 
-:root[data-theme='light'] {
+:root[data-set='atelier'][data-theme='light'] {
   color-scheme: light;
   --c-bg: #f4f0e8;
   --c-surface: #fbf9f4;
@@ -107,4 +213,27 @@
   --c-danger: #b8412f;
   --c-success: #3e7a4e;
   --c-focus: #9a7432;
+  --c-glow-rgb: 201, 163, 91;
+  --c-shadow-rgb: 0, 0, 0;
+}
+
+:root[data-set='atelier'][data-theme='dark'] {
+  color-scheme: dark;
+  --c-bg: #0e0d0b;
+  --c-surface: #171512;
+  --c-surface2: #201d19;
+  --c-surface3: #2a2620;
+  --c-line: rgba(240, 230, 210, 0.10);
+  --c-line-strong: rgba(240, 230, 210, 0.22);
+  --c-text: #efe8dc;
+  --c-text-muted: #a59d8f;
+  --c-text-faint: #6f685d;
+  --c-accent: #c9a35b;
+  --c-accent-strong: #e2c27f;
+  --c-accent-ink: #1a140a;
+  --c-danger: #e0614e;
+  --c-success: #7fb38a;
+  --c-focus: #e2c27f;
+  --c-glow-rgb: 201, 163, 91;
+  --c-shadow-rgb: 0, 0, 0;
 }

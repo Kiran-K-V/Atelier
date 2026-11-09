@@ -9,7 +9,7 @@ const ITEMS = [
 export function SiteNav({ className = '' }: { readonly className?: string }) {
   const [path] = useLocation()
   return (
-    <nav aria-label="Primary" className={`inline-flex items-center rounded-xs border border-line-strong bg-surface/80 p-0.5 backdrop-blur-sm ${className}`}>
+    <nav aria-label="Primary" className={`glass inline-flex items-center rounded-xs border border-line-strong bg-surface/80 p-0.5 backdrop-blur-sm ${className}`}>
       {ITEMS.map(({ href, label, active }) => {
         const current = active(path)
         return (

@@ -88,7 +88,7 @@ export function LessonPage({ skillId }: { readonly skillId: string }) {
           <h2 id="loop" className={`${labelClass} m-0`}>How the lesson works</h2>
           <ol className="m-0 mt-3 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((step, i) => (
-              <li key={step.name} className="rounded-sm border border-line bg-surface p-4">
+              <li key={step.name} className="glass rounded-sm border border-line bg-surface p-4">
                 <span className={labelClass}>Step {i + 1}</span>
                 <p className="atelier-display m-0 mt-1 text-xl text-text">{step.name}</p>
                 <p className="m-0 mt-2 text-sm text-text-muted">{step.detail}</p>

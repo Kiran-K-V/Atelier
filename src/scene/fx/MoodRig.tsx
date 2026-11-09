@@ -1,17 +1,17 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { scene as tokens } from '../../design/tokens'
 import { gDur, gEase, gsap } from '../../motion/ease'
 import { useGame } from '../../store/game'
 import { useSettings } from '../../store/settings'
 import { fxBus } from '../choreo/bus'
 import type { Mood } from '../choreo/types'
 import { squareToPosition } from '../coords'
+import { useLook } from '../look'
 import { moodWeights, useMood } from './mood'
 
-const KEY = 1.6
-const AMBIENT = 0.15
+/** Key and ambient per set: glacier wants harder contrast so its glass and resin read as volume. */
+const LIGHT = { atelier: { key: 1.6, ambient: 0.15 }, glacier: { key: 2.1, ambient: 0.06 } } as const
 const PULSE = 1.1
 
 interface MoodRigProps {
@@ -37,6 +37,8 @@ export function MoodRig({ room, shadowMapSize }: MoodRigProps) {
   const roomColor = useMemo(() => new THREE.Color(room), [room])
   const clock = useThree((s) => s.clock)
   const checkAt = useRef(-10)
+  const checkColor = useLook().check
+  const light = LIGHT[useSettings((s) => s.boardSet)]
 
   useEffect(() => {
     const apply = (requested: Mood) => {
@@ -73,8 +75,8 @@ export function MoodRig({ room, shadowMapSize }: MoodRigProps) {
 
   useFrame((state) => {
     const { check, mate } = moodWeights
-    if (key.current) key.current.intensity = KEY * (1 - 0.65 * mate)
-    if (ambient.current) ambient.current.intensity = AMBIENT * (1 - 0.6 * mate)
+    if (key.current) key.current.intensity = light.key * (1 - 0.65 * mate)
+    if (ambient.current) ambient.current.intensity = light.ambient * (1 - 0.6 * mate)
     state.scene.environmentIntensity = 1 - 0.55 * mate
     const bg = state.scene.background
     if (bg instanceof THREE.Color) bg.copy(roomColor).multiplyScalar(1 - 0.35 * mate)
@@ -97,11 +99,11 @@ export function MoodRig({ room, shadowMapSize }: MoodRigProps) {
 
   return (
     <>
-      <ambientLight ref={ambient} intensity={AMBIENT} />
+      <ambientLight ref={ambient} intensity={light.ambient} />
       <directionalLight
         ref={key}
         position={[4, 9, 5]}
-        intensity={KEY}
+        intensity={light.key}
         castShadow={shadowMapSize > 0}
         shadow-mapSize={[shadowMapSize || 512, shadowMapSize || 512]}
         shadow-bias={-0.0004}
@@ -113,7 +115,7 @@ export function MoodRig({ room, shadowMapSize }: MoodRigProps) {
         shadow-camera-near={1}
         shadow-camera-far={25}
       />
-      <pointLight ref={rim} color={tokens.check} intensity={0} distance={3.2} decay={2} />
+      <pointLight ref={rim} color={checkColor} intensity={0} distance={3.2} decay={2} />
       <spotLight ref={spot} color="#d6e2ff" intensity={0} angle={0.2} penumbra={0.75} distance={9} decay={2} />
       <primitive object={spotTarget} />
     </>

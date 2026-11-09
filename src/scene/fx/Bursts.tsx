@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { scene } from '../../design/tokens'
 import { squareToPosition } from '../coords'
+import { look } from '../look'
 import { pieceMaterial } from '../materials'
 import { pieceGeometry } from '../pieces/geometry'
 import { flatPlane, hdr, particleGeometry, shardGeometry, shellGeometry } from './geometry'
@@ -17,21 +17,21 @@ export function LightColumn({ event, startedAt, density, onDone }: FxProps<'ligh
   const duration = Math.max(0.8, event.duration)
   const outer = useOwned(() => {
     const m = shellMaterial()
-    m.uniforms.uColor.value.copy(hdr('#fff3dc', 1.4))
-    m.uniforms.uTopColor.value.copy(hdr(scene.brass, 1.1))
+    m.uniforms.uColor.value.copy(hdr(look().glow, 1.4))
+    m.uniforms.uTopColor.value.copy(hdr(look().brass, 1.1))
     m.uniforms.uRim.value = 1
     return m
   })
   const core = useOwned(() => {
     const m = shellMaterial()
-    m.uniforms.uColor.value.copy(hdr('#fffaf0', 1.6))
-    m.uniforms.uTopColor.value.copy(hdr(scene.legal, 1.4))
+    m.uniforms.uColor.value.copy(hdr(look().glow, 1.6))
+    m.uniforms.uTopColor.value.copy(hdr(look().legal, 1.4))
     m.uniforms.uRim.value = 0.3
     return m
   })
   const base = useOwned(() => {
     const m = ringMaterial({ additive: true })
-    m.uniforms.uColor.value.copy(hdr(scene.legal, 2.2))
+    m.uniforms.uColor.value.copy(hdr(look().legal, 2.2))
     m.uniforms.uFill.value = 0.25
     m.uniforms.uRadius.value = 0.42
     m.uniforms.uWidth.value = 0.08
@@ -50,7 +50,7 @@ export function LightColumn({ event, startedAt, density, onDone }: FxProps<'ligh
   )
   const mote = useOwned(() => {
     const m = particleMaterial(true)
-    m.uniforms.uColor.value.copy(hdr('#ffd99a', 3))
+    m.uniforms.uColor.value.copy(hdr(look().glow, 3))
     m.uniforms.uDrag.value = 0.6
     m.uniforms.uGravity.value = 0.2
     m.uniforms.uSwirl.value = 2.5
@@ -194,8 +194,8 @@ export function GhostTrail({ event, startedAt, onDone }: FxProps<'ghostTrail'>) 
   const mats = useOwned(() => {
     const list = [0, 1, 2].map(() => {
       const m = ghostMaterial()
-      m.uniforms.uColor.value.copy(event.color === 'w' ? hdr(scene.pieceLight, 0.8) : hdr('#1c1714', 1))
-      m.uniforms.uRimColor.value.copy(event.color === 'w' ? hdr('#fff4e2', 2) : hdr(scene.brass, 2))
+      m.uniforms.uColor.value.copy(event.color === 'w' ? hdr(look().pieceLight, 0.8) : hdr('#1c1714', 1))
+      m.uniforms.uRimColor.value.copy(event.color === 'w' ? hdr(look().glow, 2) : hdr(look().brass, 2))
       return m
     })
     return { list, dispose: () => list.forEach((m) => m.dispose()) }

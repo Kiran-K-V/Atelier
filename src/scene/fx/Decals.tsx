@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import type * as THREE from 'three'
-import { scene } from '../../design/tokens'
 import { squareToPosition } from '../coords'
+import { look } from '../look'
 import { flatPlane, hdr, particleGeometry, shellGeometry } from './geometry'
 import { clamp01, easeFn, useLife, useOwned, type FxProps } from './life'
 import { particleMaterial, ringMaterial, shellMaterial } from './shaders'
@@ -68,7 +68,7 @@ export function DustRing({ event, startedAt, density, onDone }: FxProps<'dustRin
   })
   return (
     <>
-      <SquareGlow square={event.square} startedAt={startedAt} strength={0.22} color="#f1e6d0" />
+      <SquareGlow square={event.square} startedAt={startedAt} strength={0.22} color={look().glow} />
       <group position={[x, 0, z]}>
         <points geometry={points} material={puff} frustumCulled={false} />
       </group>
@@ -78,7 +78,7 @@ export function DustRing({ event, startedAt, density, onDone }: FxProps<'dustRin
 
 /** Knight landing: the square catches the light; the board's own wave carries the impact outward. */
 export function RippleRing({ event, startedAt, onDone }: FxProps<'ripple'>) {
-  return <SquareGlow square={event.square} startedAt={startedAt} strength={0.28 * event.strength} color="#f1e6d0" onDone={onDone} />
+  return <SquareGlow square={event.square} startedAt={startedAt} strength={0.28 * event.strength} color={look().glow} onDone={onDone} />
 }
 
 /** King: a faint shell of light around the piece and a soft glow on its square. */
@@ -87,8 +87,8 @@ export function Aura({ event, startedAt, onDone }: FxProps<'aura'>) {
   const shellMesh = useRef<THREE.Mesh>(null)
   const shell = useOwned(() => {
     const m = shellMaterial()
-    m.uniforms.uColor.value.copy(hdr(scene.legal, 1.5))
-    m.uniforms.uTopColor.value.copy(hdr(scene.brass, 0.6))
+    m.uniforms.uColor.value.copy(hdr(look().legal, 1.5))
+    m.uniforms.uTopColor.value.copy(hdr(look().brass, 0.6))
     return m
   })
   useLife(startedAt, 0.9, onDone, (t) => {
@@ -100,7 +100,7 @@ export function Aura({ event, startedAt, onDone }: FxProps<'aura'>) {
   })
   return (
     <>
-      <SquareGlow square={event.square} startedAt={startedAt} strength={0.2} color={scene.brass} />
+      <SquareGlow square={event.square} startedAt={startedAt} strength={0.2} color={look().brass} />
       <group position={[x, 0, z]}>
         <mesh ref={shellMesh} geometry={shellGeometry()} material={shell} scale={[0.4, 1.3, 0.4]} renderOrder={4} />
       </group>
@@ -113,7 +113,7 @@ export function ImpactFlash({ event, startedAt, onDone }: FxProps<'impactFlash'>
   const [x, , z] = squareToPosition(event.square)
   const disc = useOwned(() => {
     const m = ringMaterial({ additive: true })
-    m.uniforms.uColor.value.copy(hdr('#fff1d6', 3.2))
+    m.uniforms.uColor.value.copy(hdr(look().glow, 3.2))
     m.uniforms.uFill.value = 1
     m.uniforms.uHalf.value = 0.8
     return m

@@ -39,7 +39,7 @@ function ResultCard({ status, onReview }: { status: Finished; onReview: () => vo
 
   return (
     <motion.div
-      className="absolute inset-0 z-20 grid place-items-center bg-bg/50 p-4"
+      className="glass-scrim absolute inset-0 z-20 grid place-items-center bg-bg/50 p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -53,7 +53,7 @@ function ResultCard({ status, onReview }: { status: Finished; onReview: () => vo
         initial={{ y: 16 }}
         animate={{ y: 0, transition: { duration: sec('deliberate'), ease: bezier('enter') } }}
         exit={{ y: 8, transition: { duration: sec('fast'), ease: bezier('exit') } }}
-        className="w-full max-w-sm rounded-xs border border-line-strong bg-surface p-6 shadow-lg outline-none lg:p-8"
+        className="glass w-full max-w-sm rounded-xs border border-line-strong bg-surface p-6 shadow-lg outline-none lg:p-8"
       >
         <p className={`${labelClass} m-0`}>Result</p>
         <h2 id="game-over-headline" className="atelier-display m-0 mt-3 text-4xl font-light leading-none text-text lg:text-5xl">
