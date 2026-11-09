@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { GameStatus } from '../rules/types'
 import { useGame } from '../store/game'
+import { usePresentation } from '../store/presentation'
+import { useSettings } from '../store/settings'
 import { colorName, drawReasonText } from './a11y/describeMove'
 import { Button } from './Button'
 import { bezier, sec } from './motionTokens'
@@ -69,15 +71,34 @@ function ResultCard({ status, onReview }: { status: Finished; onReview: () => vo
   )
 }
 
+const CINEMATIC_SETTLE_MS = 400
+
+/** True once the final position's choreography has finished (plus a short breath). */
+function useChoreographySettled(): boolean {
+  const plies = useGame((s) => s.history.length)
+  const settledPly = usePresentation((s) => s.settledPly)
+  const reducedMotion = useSettings((s) => s.reducedMotion)
+  const caughtUp = settledPly >= plies
+  // Keyed by ply so a breath taken for an earlier position never counts for this one.
+  const [breathedAt, setBreathedAt] = useState<number | null>(null)
+  useEffect(() => {
+    if (!caughtUp) return
+    const id = window.setTimeout(() => setBreathedAt(plies), CINEMATIC_SETTLE_MS)
+    return () => window.clearTimeout(id)
+  }, [caughtUp, plies])
+  return caughtUp && (reducedMotion || breathedAt === plies)
+}
+
 export function GameOverOverlay() {
   const status = useGame((s) => s.status)
+  const ready = useChoreographySettled()
   const [dismissed, setDismissed] = useState(false)
   // Re-arm for the next game. Setting state during render is React's pattern for derived resets.
   if (status.kind === 'playing' && dismissed) setDismissed(false)
 
   return (
     <AnimatePresence>
-      {status.kind !== 'playing' && !dismissed && (
+      {status.kind !== 'playing' && !dismissed && ready && (
         <ResultCard key="result" status={status} onReview={() => setDismissed(true)} />
       )}
     </AnimatePresence>

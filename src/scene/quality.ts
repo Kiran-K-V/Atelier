@@ -9,12 +9,16 @@ export interface TierConfig {
   readonly envResolution: number
   /** Live contact shadows; low tier uses per-piece blob shadows instead. */
   readonly contactShadows: boolean
+  /** Particle count multiplier for effects; below 1 also drops decorative sparkles. */
+  readonly fxDensity: number
+  /** Depth of field on the mated king. */
+  readonly dof: boolean
 }
 
 export const TIERS: Record<QualityTier, TierConfig> = {
-  high: { dpr: [1, 2], shadowMapSize: 2048, post: true, smaa: true, envResolution: 256, contactShadows: true },
-  medium: { dpr: [1, 1.5], shadowMapSize: 1024, post: true, smaa: false, envResolution: 128, contactShadows: true },
-  low: { dpr: [1, 1], shadowMapSize: 0, post: false, smaa: false, envResolution: 64, contactShadows: false },
+  high: { dpr: [1, 2], shadowMapSize: 2048, post: true, smaa: true, envResolution: 256, contactShadows: true, fxDensity: 1, dof: true },
+  medium: { dpr: [1, 1.5], shadowMapSize: 1024, post: true, smaa: false, envResolution: 128, contactShadows: true, fxDensity: 1, dof: false },
+  low: { dpr: [1, 1], shadowMapSize: 0, post: false, smaa: false, envResolution: 64, contactShadows: false, fxDensity: 0.5, dof: false },
 }
 
 const ORDER: readonly QualityTier[] = ['low', 'medium', 'high']

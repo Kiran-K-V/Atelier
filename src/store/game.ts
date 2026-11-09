@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import type { Move } from 'chess.js'
 import { isAbortError, StockfishEngine } from '../engine/engine'
 import type { ChessEngine } from '../engine/engine'
-import { checkSquareOf, isPromotionMove, legalTargets, statusOf, toPlayedMove } from '../rules/game'
+import { checkersOf, checkSquareOf, isPromotionMove, legalTargets, statusOf, toPlayedMove } from '../rules/game'
 import { applyMove, initialPieces, piecesFromBoard } from '../rules/pieces'
 import type { Color, MoveIntent, PieceInstance, Square } from '../rules/types'
 import type { GameActions, GameState } from './types'
@@ -57,12 +57,13 @@ async function startEngine(): Promise<ChessEngine> {
   return e
 }
 
-function position(): Pick<GameState, 'fen' | 'turn' | 'status' | 'checkSquare'> {
+function position(): Pick<GameState, 'fen' | 'turn' | 'status' | 'checkSquare' | 'checkers'> {
   return {
     fen: chess.fen(),
     turn: chess.turn(),
     status: statusOf(chess),
     checkSquare: checkSquareOf(chess),
+    checkers: checkersOf(chess),
   }
 }
 

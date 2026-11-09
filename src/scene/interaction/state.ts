@@ -18,6 +18,6 @@ export function hover(square: Square | null): void {
   useGame.getState().hoverSquare(square)
 }
 
-export function vibrate(ms: number): void {
-  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(ms)
+export function vibrate(pattern: number | readonly number[]): void {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(typeof pattern === 'number' ? pattern : [...pattern])
 }

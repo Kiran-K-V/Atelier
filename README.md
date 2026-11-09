@@ -20,7 +20,10 @@ npm run build
 - `src/rules/`: chess.js helpers and stable piece identity (pure, tested).
 - `src/engine/`: Stockfish 19 lite (single-threaded WASM) in a Web Worker, UCI adapter.
 - `src/store/`: Zustand game and settings stores. The game store is the only caller of chess.js.
-- `src/scene/`: React Three Fiber board, procedural pieces, interaction, move tweens.
+- `src/scene/`: React Three Fiber board, procedural pieces, interaction.
+  - `choreo/`: a move becomes a `MoveEvent`, the pure `planMove` turns it into timed beats, the performer plays them (queued).
+  - `animation/`: the six motion signatures, capture styles, king topple. `fx/`: effects, lighting mood. `CameraRig.tsx`: shake and cinematic focus.
+- `src/audio/`: procedural Web Audio sound design (no audio files).
 - `src/ui/`: 2D shell, panel, overlays, keyboard play, screen-reader announcer.
 
 Stockfish is GPLv3. It runs as a separate file in `public/engine/`.

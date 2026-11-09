@@ -1,13 +1,17 @@
-import type { ThreeEvent } from '@react-three/fiber'
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { scene } from '../../design/tokens'
 import { useGame } from '../../store/game'
+import { useSettings } from '../../store/settings'
+import { fxBus } from '../choreo/bus'
 import { ALL_SQUARES, isLightSquare, positionToSquare, squareToPosition } from '../coords'
 import { hover } from '../interaction/state'
 import { materials } from '../materials'
 import { mulberry32 } from '../materials/marble'
+import { RIPPLE } from './ripple'
+import { rippleUniforms, withRipple } from './rippleMaterial'
 
 export const FRAME_TOP = 0.07
 const FRAME_OUTER = 4.8
@@ -25,6 +29,12 @@ function squaresGeometry(light: boolean): THREE.BufferGeometry {
     const g = new THREE.BoxGeometry(0.994, 0.04, 0.994)
     const [x, , z] = squareToPosition(sq)
     g.translate(x, -0.02, z)
+    const center = new Float32Array(g.getAttribute('position').count * 2)
+    for (let i = 0; i < center.length; i += 2) {
+      center[i] = x
+      center[i + 1] = z
+    }
+    g.setAttribute('aCenter', new THREE.BufferAttribute(center, 2))
     const uv = g.getAttribute('uv')
     const size = 0.24 + rand() * 0.08
     const u0 = rand() * (1 - size)
@@ -160,6 +170,28 @@ const geometries = (() => {
     })
 })()
 
+const rippleMaterials = (() => {
+  let built: { light: THREE.MeshPhysicalMaterial; dark: THREE.MeshPhysicalMaterial } | null = null
+  return () => (built ??= { light: withRipple(materials().squareLight), dark: withRipple(materials().squareDark) })
+})()
+
+/** Knight landings send a wave through the tiles; slots are reused round-robin. */
+function useBoardRipple(): void {
+  const clock = useThree((s) => s.clock)
+  useEffect(() => {
+    let next = 0
+    return fxBus.on((e) => {
+      if (e.type !== 'ripple' || useSettings.getState().reducedMotion) return
+      const [x, , z] = squareToPosition(e.square)
+      rippleUniforms.uRipples.value[next].set(x, z, clock.elapsedTime, e.strength)
+      next = (next + 1) % RIPPLE.slots
+    })
+  }, [clock])
+  useFrame(({ clock: c }) => {
+    rippleUniforms.uRippleTime.value = c.elapsedTime
+  })
+}
+
 function onSquareMove(e: ThreeEvent<PointerEvent>) {
   hover(positionToSquare(e.point.x, e.point.z))
 }
@@ -173,12 +205,14 @@ function onSquareClick(e: ThreeEvent<MouseEvent>) {
 export function Board({ room }: { room: string }) {
   const m = materials()
   const g = geometries()
+  const squares = rippleMaterials()
   const labels = useLabelTexture()
+  useBoardRipple()
 
   return (
     <group>
-      <mesh geometry={g.light} material={m.squareLight} receiveShadow />
-      <mesh geometry={g.dark} material={m.squareDark} receiveShadow />
+      <mesh geometry={g.light} material={squares.light} receiveShadow />
+      <mesh geometry={g.dark} material={squares.dark} receiveShadow />
       {/* Grout bed: shows as fine dark seams between squares. */}
       <mesh position={[0, -0.03, 0]} material={m.frame}>
         <boxGeometry args={[8.1, 0.05, 8.1]} />

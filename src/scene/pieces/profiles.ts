@@ -3,8 +3,8 @@ import type { PieceSymbol } from '../../rules/types'
 /**
  * Staunton silhouettes as 2D paths in the (radius, height) half-plane, in board units
  * (one square = 1). Each path starts on the axis at y = 0 and ends on the axis at the top,
- * so a lathe closes it. Kept as plain data so a later phase can resample two profiles
- * (THREE.Path.getSpacedPoints) and tween one into the other for promotion.
+ * so a lathe closes it. Kept as plain data so promotion can resample two profiles and
+ * morph one into the other (profileMorph.ts).
  */
 export type ProfileCommand =
   | readonly ['M', r: number, y: number]
@@ -16,6 +16,9 @@ export type ProfileCommand =
 export type Profile = readonly ProfileCommand[]
 
 export type LatheType = Exclude<PieceSymbol, 'n'>
+
+/** Commands in the shared foot; every profile starts with them, so morphs can map foot to foot. */
+export const FOOT_COMMANDS = 9
 
 /** Weighted foot shared by every piece: fillet, band, bevel, bead, cove. Ends at (R - 0.085, 0.118). */
 function foot(R: number): ProfileCommand[] {

@@ -13,6 +13,8 @@ export interface GameState {
   readonly status: GameStatus
   /** King square of the side to move when in check, else null. */
   readonly checkSquare: Square | null
+  /** Squares of the pieces giving that check. */
+  readonly checkers: readonly Square[]
   readonly playerColor: Color
   readonly difficulty: Difficulty
   readonly engine: 'loading' | 'ready' | 'thinking' | 'error'

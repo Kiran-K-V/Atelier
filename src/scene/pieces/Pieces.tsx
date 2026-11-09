@@ -1,10 +1,11 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type * as THREE from 'three'
+import { gsap } from '../../motion/ease'
 import type { PieceInstance } from '../../rules/types'
 import { useGame } from '../../store/game'
-import { useSettings } from '../../store/settings'
-import { playCaptureTween } from '../animation/moveTween'
+import { captureTimeline } from '../animation/captures'
 import { noRaycast } from '../board/Highlights'
+import { registry, type GhostHandle } from '../choreo/registry'
 import { squareToPosition } from '../coords'
 import { pieceGeometry } from './geometry'
 import { Piece, pieceMaterials, yawFor } from './Piece'
@@ -14,10 +15,13 @@ interface Ghost {
   readonly piece: PieceInstance
 }
 
-/** A piece that just left the board: plays the capture animation on private, fadeable materials. */
+/** Frames to wait for a plan to claim a ghost before it fades on its own. */
+const CLAIM_WINDOW = 0.05
+
+/** A piece that just left the board, on private fadeable materials, waiting for its capture beat. */
 function CapturedGhost({ piece, onDone }: { piece: PieceInstance; onDone: () => void }) {
   const group = useRef<THREE.Group>(null)
-  const reduced = useSettings((s) => s.reducedMotion)
+  const mesh = useRef<THREE.Mesh>(null)
   const { geometry, accent } = pieceGeometry(piece.type)
   const mats = useMemo(
     () =>
@@ -29,14 +33,35 @@ function CapturedGhost({ piece, onDone }: { piece: PieceInstance; onDone: () => 
     [piece.color, accent],
   )
 
+  const handleRef = useRef<GhostHandle | null>(null)
+
   useLayoutEffect(() => {
-    if (!group.current) return
-    const tl = playCaptureTween({ object: group.current, materials: mats, reducedMotion: reduced })
-    tl.eventCallback('onComplete', onDone)
-    return () => {
-      tl.kill()
+    if (!group.current || !mesh.current) return
+    // Reused across StrictMode's simulated remount so a claim made in between survives.
+    const handle: GhostHandle = handleRef.current ?? {
+      id: piece.id,
+      type: piece.type,
+      color: piece.color,
+      group: group.current,
+      mesh: mesh.current,
+      materials: mats,
+      claimed: false,
+      remove: onDone,
     }
-    // Plays once per ghost; later prop changes must not restart it.
+    handleRef.current = handle
+    const unregister = registry.addGhost(handle)
+    let fade: gsap.core.Timeline | null = null
+    const wait = gsap.delayedCall(CLAIM_WINDOW, () => {
+      if (!handle.claimed) fade = captureTimeline('fade', { ghost: handle, direction: [0, 0], track: () => {} })
+    })
+    // Capture tweens are not killed here: StrictMode's simulated remount runs after the
+    // Director has scheduled them. A real unmount comes from the capture's end or resetAll.
+    return () => {
+      unregister()
+      wait.kill()
+      fade?.kill()
+    }
+    // Registers once per ghost; later prop changes must not re-register it.
   }, [])
 
   useLayoutEffect(() => () => mats.forEach((m) => m.dispose()), [mats])
@@ -44,7 +69,7 @@ function CapturedGhost({ piece, onDone }: { piece: PieceInstance; onDone: () => 
 
   return (
     <group ref={group} position={position}>
-      <mesh geometry={geometry} material={mats} rotation-y={yawFor(piece.color)} castShadow raycast={noRaycast} />
+      <mesh ref={mesh} geometry={geometry} material={mats} rotation-y={yawFor(piece.color)} castShadow raycast={noRaycast} />
     </group>
   )
 }

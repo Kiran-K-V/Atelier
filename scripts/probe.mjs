@@ -1,5 +1,5 @@
 // Drive the running app in headless Chrome: screenshot, console errors, fps, and an optional move script.
-// Usage: node scripts/probe.mjs <url> <outDir> [--theme=light|dark] [--width=1440] [--height=900] [--quality=low|medium|high] [--play]
+// Usage: node scripts/probe.mjs <url> <outDir> [--theme=light|dark] [--width=1440] [--height=900] [--quality=low|medium|high] [--play] [--wait=ms]
 import { mkdirSync } from 'node:fs'
 import { chromium } from 'playwright'
 
@@ -51,7 +51,7 @@ if (opt.play) {
   await page.keyboard.press('ArrowUp')
   await page.keyboard.press('ArrowUp')
   await page.keyboard.press('Enter')
-  await page.waitForTimeout(6000)
+  await page.waitForTimeout(Number(opt.wait ?? 6000))
   await page.screenshot({ path: `${outDir}/${tag}-after-e4.png` })
   played = await page.evaluate(() => document.querySelector('[aria-live]')?.textContent ?? null)
 }

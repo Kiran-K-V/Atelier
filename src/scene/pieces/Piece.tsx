@@ -1,12 +1,15 @@
 import { useFrame, type ThreeEvent } from '@react-three/fiber'
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import * as THREE from 'three'
 import { gDur, gEase, gsap } from '../../motion/ease'
-import type { Color, PieceInstance } from '../../rules/types'
+import { playSound } from '../../audio'
+import type { Color, PieceInstance, Square } from '../../rules/types'
 import { useGame } from '../../store/game'
 import { useSettings } from '../../store/settings'
-import { playMoveTween, playSnapBack, shakeTimeline } from '../animation/moveTween'
+import { playSnapBack, shakeTimeline } from '../animation/snapBack'
+import { motionTargets } from '../animation/signatures'
 import { noRaycast } from '../board/Highlights'
+import { registry, type PieceHandle } from '../choreo/registry'
 import { squareToPosition } from '../coords'
 import { hover, useInteraction, vibrate } from '../interaction/state'
 import { useDrag } from '../interaction/useDrag'
@@ -65,7 +68,11 @@ function PieceView({ piece, blobShadow }: PieceProps) {
   const outer = useRef<THREE.Group>(null)
   const lift = useRef<THREE.Group>(null)
   const shake = useRef<THREE.Group>(null)
-  const placed = useRef(false)
+  const mesh = useRef<THREE.Mesh>(null)
+  const handle = useRef<PieceHandle | null>(null)
+  const placedOn = useRef<Square | null>(null)
+  // Lags `piece.type` through a promotion until the morph reveals the new body.
+  const [shownType, setShownType] = useState(piece.type)
   const reduced = useSettings((s) => s.reducedMotion)
   const canAct = useGame(
     (s) => s.playerColor === piece.color && s.turn === s.playerColor && s.status.kind === 'playing' && !s.pendingPromotion,
@@ -76,29 +83,53 @@ function PieceView({ piece, blobShadow }: PieceProps) {
   const dragging = useInteraction((s) => s.dragging === piece.id)
   const handledNonce = useRef(illegal?.nonce ?? null)
 
-  const { geometry, accent } = pieceGeometry(piece.type)
+  const { geometry, accent } = pieceGeometry(shownType)
   const mats = useMemo(() => pieceMaterials(piece.color, accent), [piece.color, accent])
 
-  // First placement is instant; every later square change is an animated move.
+  useLayoutEffect(() => {
+    const [o, l, s, m] = [outer.current, lift.current, shake.current, mesh.current]
+    if (!o || !l || !s || !m) return
+    const h: PieceHandle = {
+      id: piece.id,
+      color: piece.color,
+      type: piece.type,
+      square: piece.square,
+      outer: o,
+      lift: l,
+      shake: s,
+      mesh: m,
+      reveal: () => {
+        // Set imperatively too, so the swap lands on the same frame the morph mesh leaves.
+        const g = pieceGeometry(h.type)
+        m.geometry = g.geometry
+        m.material = pieceMaterials(h.color, g.accent)
+        m.visible = true
+        setShownType(h.type)
+      },
+    }
+    handle.current = h
+    const unregister = registry.addPiece(h)
+    return () => {
+      unregister()
+      gsap.killTweensOf([...motionTargets(h), l.position])
+    }
+    // The key is the piece id, so the handle lives exactly as long as this component.
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!handle.current) return
+    handle.current.type = piece.type
+    handle.current.square = piece.square
+  })
+
+  // First placement is instant; later square changes are performed by the Director.
   useLayoutEffect(() => {
     const o = outer.current
-    if (!o) return
-    const to = squareToPosition(piece.square)
-    if (!placed.current) {
-      placed.current = true
-      o.position.set(...to)
-      return
-    }
-    playMoveTween(piece.type, { object: o, to, reducedMotion: reduced })
-    // Only a square change starts a move; type and motion setting are read at that moment.
-  }, [piece.square])
-
-  useEffect(
-    () => () => {
-      if (outer.current) gsap.killTweensOf([outer.current.position, outer.current.rotation])
-    },
-    [],
-  )
+    if (!o || placedOn.current === piece.square) return
+    if (placedOn.current === null) o.position.set(...squareToPosition(piece.square))
+    else registry.markMoved(piece.id)
+    placedOn.current = piece.square
+  }, [piece.square, piece.id])
 
   const lifted = (hovered || selected) && canAct && !dragging && !reduced
   useEffect(() => {
@@ -117,6 +148,7 @@ function PieceView({ piece, blobShadow }: PieceProps) {
       if (illegalNonce !== null) {
         handledNonce.current = illegalNonce
         vibrate(15)
+        playSound('illegal', piece.square)
       }
       playSnapBack({
         object: outer.current,
@@ -135,6 +167,7 @@ function PieceView({ piece, blobShadow }: PieceProps) {
     handledNonce.current = illegal.nonce
     if (illegal.square !== piece.square) return
     vibrate(15)
+    playSound('illegal', piece.square)
     if (!reduced && shake.current) shakeTimeline(shake.current)
   }, [illegal, piece.square, reduced])
 
@@ -156,6 +189,7 @@ function PieceView({ piece, blobShadow }: PieceProps) {
       <group ref={lift}>
         <group ref={shake}>
           <mesh
+            ref={mesh}
             geometry={geometry}
             material={mats}
             rotation-y={yawFor(piece.color)}

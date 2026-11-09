@@ -1,6 +1,5 @@
 import { ContactShadows, Environment, Lightformer, PerformanceMonitor } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
-import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessing'
 import { useSyncExternalStore } from 'react'
 import * as THREE from 'three'
 import { scene } from '../design/tokens'
@@ -8,6 +7,10 @@ import { useSettings } from '../store/settings'
 import { Board } from './board/Board'
 import { Highlights } from './board/Highlights'
 import { CAMERA_FOV, CameraRig } from './CameraRig'
+import { Director } from './choreo/Director'
+import { Effects } from './Effects'
+import { FxLayer } from './fx/FxLayer'
+import { MoodRig } from './fx/MoodRig'
 import { Pieces } from './pieces/Pieces'
 import { stepTier, TIERS } from './quality'
 
@@ -54,6 +57,8 @@ export default function Scene() {
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping
         gl.toneMappingExposure = 1.05
+        // The slice capture cuts pieces with clipping planes.
+        gl.localClippingEnabled = true
       }}
     >
       <color attach="background" args={[room]} />
@@ -64,38 +69,20 @@ export default function Scene() {
       />
 
       <Studio resolution={tier.envResolution} />
-      <ambientLight intensity={0.15} />
-      <directionalLight
-        position={[4, 9, 5]}
-        intensity={1.6}
-        castShadow={shadows}
-        shadow-mapSize={[tier.shadowMapSize || 512, tier.shadowMapSize || 512]}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.02}
-        shadow-camera-left={-6}
-        shadow-camera-right={6}
-        shadow-camera-top={6}
-        shadow-camera-bottom={-6}
-        shadow-camera-near={1}
-        shadow-camera-far={25}
-      />
+      <MoodRig room={room} shadowMapSize={tier.shadowMapSize} />
 
       <Board room={room} />
       <Highlights />
       <Pieces blobShadows={!tier.contactShadows} />
+      <Director />
+      <FxLayer />
       {tier.contactShadows && (
         <ContactShadows position={[0, 0.011, 0]} scale={9} blur={2.2} opacity={0.55} far={1.2} resolution={512} frames={Infinity} />
       )}
 
       <CameraRig />
 
-      {tier.post && (
-        <EffectComposer multisampling={0}>
-          <Bloom mipmapBlur luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.6} />
-          <Vignette offset={0.3} darkness={dark ? 0.55 : 0.3} />
-          {tier.smaa ? <SMAA /> : <></>}
-        </EffectComposer>
-      )}
+      {tier.post && <Effects smaa={tier.smaa} dof={tier.dof} vignette={dark ? 0.55 : 0.3} />}
     </Canvas>
   )
 }

@@ -22,6 +22,12 @@ export function checkSquareOf(chess: Chess): Square | null {
   return null
 }
 
+/** Squares of the pieces giving check to the side to move. Two entries means double check. */
+export function checkersOf(chess: Chess): Square[] {
+  const king = checkSquareOf(chess)
+  return king ? chess.attackers(king, chess.turn() === 'w' ? 'b' : 'w') : []
+}
+
 export function legalTargets(chess: Chess, from: Square): Square[] {
   const targets = chess.moves({ square: from, verbose: true }).map((m) => m.to)
   // Promotions yield one move per piece; the board only needs each square once.

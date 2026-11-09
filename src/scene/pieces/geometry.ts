@@ -4,7 +4,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import type { PieceSymbol } from '../../rules/types'
 import { BASE_RADIUS, KNIGHT_PLINTH, PIECE_HEIGHT, PROFILES, type Profile } from './profiles'
 
-const RADIAL_SEGMENTS = 72
+export const RADIAL_SEGMENTS = 72
 const DEG = Math.PI / 180
 
 /** Material slot order inside every piece geometry (geometry groups). */
@@ -290,6 +290,42 @@ function build(type: PieceSymbol): PieceGeometry {
       return { geometry: assemble([lathe(KNIGHT_PLINTH), head], type, []), accent: null }
     }
   }
+}
+
+export type AccentSlot = 'body' | 'brass' | 'slit'
+
+export interface AccentGeometry {
+  /** Centred on its own bounding box so it can scale in place; place the mesh at `center`. */
+  readonly geometry: THREE.BufferGeometry
+  /** Material role per geometry group. */
+  readonly slots: readonly AccentSlot[]
+  readonly center: THREE.Vector3
+}
+
+function buildAccent(type: 'q' | 'r' | 'b'): AccentGeometry {
+  const groups: [AccentSlot, THREE.BufferGeometry[]][] =
+    type === 'r'
+      ? [['body', rookCrenels()]]
+      : type === 'q'
+        ? [['body', queenCoronet()], ['brass', [collar(0.58, 0.112, 0.024)]]]
+        : [['slit', [bishopSlit()]]]
+  const geometry = merge(groups.map(([, parts]) => merge(parts)), true)
+  geometry.computeBoundingBox()
+  const center = geometry.boundingBox!.getCenter(new THREE.Vector3())
+  geometry.translate(-center.x, -center.y, -center.z)
+  return { geometry, slots: groups.map(([slot]) => slot), center }
+}
+
+const accentCache = new Map<'q' | 'r' | 'b', AccentGeometry>()
+
+/** The detail parts a promotion scales in once the body morph has finished. */
+export function accentGeometry(type: 'q' | 'r' | 'b'): AccentGeometry {
+  let g = accentCache.get(type)
+  if (!g) {
+    g = buildAccent(type)
+    accentCache.set(type, g)
+  }
+  return g
 }
 
 const cache = new Map<PieceSymbol, PieceGeometry>()
