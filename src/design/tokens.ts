@@ -146,9 +146,6 @@ export const sceneSets: Record<BoardSet, SceneColors> = {
   },
 }
 
-/** @deprecated Read `look()` from src/scene/look.ts so the active set applies. Removed after migration. */
-export const scene = sceneSets.atelier
-
 export const font = {
   display: "'Fraunces Variable', 'Iowan Old Style', Georgia, serif",
   body: "'Inter Tight Variable', ui-sans-serif, system-ui, sans-serif",
