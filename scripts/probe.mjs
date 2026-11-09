@@ -1,5 +1,5 @@
 // Drive the running app in headless Chrome: screenshot, console errors, fps, and an optional move script.
-// Usage: node scripts/probe.mjs <url> <outDir> [--theme=light|dark] [--width=1440] [--height=900] [--quality=low|medium|high] [--play] [--wait=ms]
+// Usage: node scripts/probe.mjs <url> <outDir> [--theme=light|dark] [--width=1440] [--height=900] [--quality=low|medium|high] [--play] [--wait=ms] [--swiftshader]
 import { mkdirSync } from 'node:fs'
 import { chromium } from 'playwright'
 
@@ -7,9 +7,14 @@ const [url = 'http://localhost:5173', outDir = 'probe-out', ...flags] = process.
 const opt = Object.fromEntries(flags.map((f) => f.replace(/^--/, '').split('=')).map(([k, v]) => [k, v ?? true]))
 mkdirSync(outDir, { recursive: true })
 
+// Real GPU by default (NVIDIA PRIME offload on hybrid laptops); --swiftshader forces the CPU renderer.
+const swiftshader = opt.swiftshader === true
+if (!swiftshader) Object.assign(process.env, { __NV_PRIME_RENDER_OFFLOAD: '1', __GLX_VENDOR_LIBRARY_NAME: 'nvidia' })
 const browser = await chromium.launch({
   executablePath: process.env.CHROME ?? '/usr/bin/google-chrome',
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+  args: swiftshader
+    ? ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
+    : ['--headless=new', '--use-gl=angle', '--use-angle=gl-egl', '--enable-gpu', '--ignore-gpu-blocklist'],
 })
 const page = await browser.newPage({
   viewport: { width: Number(opt.width ?? 1440), height: Number(opt.height ?? 900) },
