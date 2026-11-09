@@ -88,6 +88,8 @@ export default function Scene() {
         gl.toneMappingExposure = 1.05
         // The slice capture cuts pieces with clipping planes.
         gl.localClippingEnabled = true
+        // Glass refraction samples a blurred copy of the scene; half resolution is indistinguishable and halves its cost.
+        gl.transmissionResolutionScale = 0.5
       }}
     >
       <color attach="background" args={[room]} />
@@ -100,7 +102,7 @@ export default function Scene() {
       <Studio resolution={tier.envResolution} set={set} />
       <MoodRig room={room} shadowMapSize={tier.shadowMapSize} />
 
-      <Board room={room} />
+      <Board room={room} dark={dark} />
       <Highlights />
       <Pieces blobShadows />
       <Director />

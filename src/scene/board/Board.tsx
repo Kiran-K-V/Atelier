@@ -4,12 +4,14 @@ import * as THREE from 'three'
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { useGame } from '../../store/game'
 import { useSettings } from '../../store/settings'
+import type { QualityTier } from '../../store/types'
 import { fxBus } from '../choreo/bus'
 import { ALL_SQUARES, isLightSquare, positionToSquare, squareToPosition } from '../coords'
 import { hover } from '../interaction/state'
 import { useLook } from '../look'
 import { linkMaterial, materials } from '../materials'
 import { withDepth } from '../materials/depth'
+import { GlassReflection } from './Reflection'
 import { mulberry32 } from '../materials/marble'
 import { RIPPLE } from './ripple'
 import { rippleUniforms, withRipple } from './rippleMaterial'
@@ -217,13 +219,14 @@ function useLabelTexture(): THREE.CanvasTexture {
 }
 
 const geometries = (() => {
-  let built: Record<'light' | 'dark' | 'frame' | 'iceFrame' | 'inlay' | 'labels', THREE.BufferGeometry> | null = null
+  let built: Record<'light' | 'dark' | 'frame' | 'iceFrame' | 'underGlow' | 'inlay' | 'labels', THREE.BufferGeometry> | null = null
   return () =>
     (built ??= {
       light: squaresGeometry(true),
       dark: squaresGeometry(false),
       frame: frameGeometry(),
       iceFrame: iceFrameGeometry(),
+      underGlow: flat(new THREE.ShapeGeometry(ring(FRAME_OUTER - 0.15, FRAME_INNER + 0.05)), TABLE_Y + 0.005),
       inlay: flat(new THREE.ShapeGeometry(ring(INLAY[1], INLAY[0])), FRAME_TOP + 0.0015),
       labels: labelGeometry(),
     })
@@ -255,6 +258,36 @@ function useBoardRipple(): void {
   })
 }
 
+/** Planar reflection per tier (an extra scene render, refreshed every `interval` frames); null is off. */
+const REFLECTION: Record<QualityTier, { resolution: number; interval: number } | null> = {
+  high: { resolution: 256, interval: 2 },
+  medium: { resolution: 256, interval: 3 },
+  low: null,
+}
+
+/** Soft radial glow for the glacier floor: lighter navy under the board, falling off to the room. */
+function useFloorGlow(): THREE.CanvasTexture {
+  const texture = useMemo(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 256
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128)
+      grad.addColorStop(0, '#fff')
+      grad.addColorStop(0.1, 'rgba(255,255,255,0.75)')
+      grad.addColorStop(0.25, 'rgba(255,255,255,0.25)')
+      grad.addColorStop(0.55, 'rgba(40,40,40,0)')
+      ctx.fillStyle = '#282828'
+      ctx.fillRect(0, 0, 256, 256)
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, 256, 256)
+    }
+    return new THREE.CanvasTexture(canvas)
+  }, [])
+  useEffect(() => () => texture.dispose(), [texture])
+  return texture
+}
+
 function onSquareMove(e: ThreeEvent<PointerEvent>) {
   hover(positionToSquare(e.point.x, e.point.z))
 }
@@ -265,13 +298,16 @@ function onSquareClick(e: ThreeEvent<MouseEvent>) {
   if (sq) useGame.getState().clickSquare(sq)
 }
 
-export function Board({ room }: { room: string }) {
+export function Board({ room, dark }: { room: string; dark: boolean }) {
   const m = materials()
   const g = geometries()
   const squares = rippleMaterials()
   const labels = useLabelTexture()
   const look = useLook()
   const set = useSettings((s) => s.boardSet)
+  const reflection = REFLECTION[useSettings((s) => s.quality)]
+  const floorGlow = useFloorGlow()
+  const navyFloor = set === 'glacier' && dark
   useBoardRipple()
 
   return (
@@ -283,6 +319,15 @@ export function Board({ room }: { room: string }) {
         <boxGeometry args={[8.1, 0.05, 8.1]} />
       </mesh>
       <mesh geometry={set === 'glacier' ? g.iceFrame : g.frame} material={m.frame} castShadow receiveShadow />
+      {set === 'glacier' && (
+        <>
+          {/* Teal light under the glass frame, so its thickness glows through the refraction. */}
+          <mesh geometry={g.underGlow} raycast={() => undefined}>
+            <meshBasicMaterial color="#0f86b0" toneMapped={false} />
+          </mesh>
+          {reflection && <GlassReflection {...reflection} />}
+        </>
+      )}
       <mesh geometry={g.inlay} material={m.brass} receiveShadow />
       <mesh geometry={g.labels} renderOrder={1}>
         <meshStandardMaterial
@@ -297,7 +342,12 @@ export function Board({ room }: { room: string }) {
       </mesh>
       <mesh position={[0, TABLE_Y, 0]} rotation-x={-Math.PI / 2} receiveShadow>
         <planeGeometry args={[80, 80]} />
-        <meshStandardMaterial color={room} roughness={0.92} />
+        {navyFloor ? (
+          // Unlit: a lit dielectric floor picks up the bright studio env as a grey sheen.
+          <meshBasicMaterial color="#0b3a66" map={floorGlow} />
+        ) : (
+          <meshStandardMaterial color={room} roughness={0.92} />
+        )}
       </mesh>
       {/* Pointer target for squares: invisible, but still raycast. */}
       <mesh

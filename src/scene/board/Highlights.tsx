@@ -9,8 +9,9 @@ import { squareToPosition } from '../coords'
 import { useLook } from '../look'
 import { glowTexture, type GlowShape } from '../materials/glow'
 
-/** Soft dark underlay per set, so marks read on pale squares too. */
+/** Soft dark underlay per set, so marks read on pale squares too. Cyan on snow needs a firmer one. */
 const HALO = { atelier: '#1a1208', glacier: '#010a1a' } as const
+const HALO_GAIN = { atelier: 1, glacier: 1.6 } as const
 
 export const noRaycast = () => undefined
 
@@ -86,7 +87,9 @@ export function Highlights() {
   const cursor = useGame((s) => s.cursor)
   const occupied = useMemo(() => new Set(pieces.map((p) => p.square)), [pieces])
   const scene = useLook()
-  const haloColor = HALO[useSettings((s) => s.boardSet)]
+  const set = useSettings((s) => s.boardSet)
+  const haloColor = HALO[set]
+  const gain = HALO_GAIN[set]
 
   return (
     <group>
@@ -97,12 +100,12 @@ export function Highlights() {
       {checkSquare && (
         <Mark key={`check-${checkSquare}`} square={checkSquare} shape="blob" color={scene.check} size={1.5} y={0.004} opacity={0.85} intensity={2.2} pulse />
       )}
-      {selected && <Mark key={`sel-${selected}`} square={selected} shape="frame" color={scene.marker} size={1} y={0.005} opacity={1} intensity={1.15} halo={0.5} haloColor={haloColor} />}
+      {selected && <Mark key={`sel-${selected}`} square={selected} shape="frame" color={scene.marker} size={1} y={0.005} opacity={1} intensity={1.15} halo={0.5 * gain} haloColor={haloColor} />}
       {legalTargets.map((sq) =>
         occupied.has(sq) ? (
-          <Mark key={`cap-${sq}`} square={sq} shape="ring" color={scene.marker} size={1} y={0.007} opacity={1} intensity={1.15} halo={0.5} haloColor={haloColor} />
+          <Mark key={`cap-${sq}`} square={sq} shape="ring" color={scene.marker} size={1} y={0.007} opacity={1} intensity={1.15} halo={0.5 * gain} haloColor={haloColor} />
         ) : (
-          <Mark key={`mv-${sq}`} square={sq} shape="disc" color={scene.marker} size={0.34} y={0.007} opacity={1} intensity={1.15} halo={0.55} haloColor={haloColor} />
+          <Mark key={`mv-${sq}`} square={sq} shape="disc" color={scene.marker} size={0.34} y={0.007} opacity={1} intensity={1.15} halo={Math.min(1, 0.55 * gain)} haloColor={haloColor} />
         ),
       )}
       {cursor && <Mark key={`cur-${cursor}`} square={cursor} shape="frame" color={scene.cursor} size={0.96} y={0.009} opacity={0.95} intensity={1.6} />}
