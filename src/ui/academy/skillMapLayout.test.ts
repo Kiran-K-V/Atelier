@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { curriculum } from '../../academy/curriculum'
 import { skillId } from '../../academy/types'
-import { ancestors, dependents, layoutSkillMap, NODE_R } from './skillMapLayout'
+import { ancestors, dependents, LABEL_H, layoutSkillMap, NODE_R } from './skillMapLayout'
 
 describe('layoutSkillMap', () => {
   for (const width of [640, 828, 1200]) {
@@ -33,17 +33,42 @@ describe('layoutSkillMap', () => {
       expect(map.height).toBe(map.bands.at(-1)!.y + map.bands.at(-1)!.height)
     })
 
-    it(`draws one edge per prerequisite, from node to node, at ${width}px`, () => {
+    it(`draws one link per prerequisite, node to node, at ${width}px`, () => {
       const expected = curriculum.skills.flatMap((s) => s.prerequisites.map((p) => `${p}>${s.id}`))
-      expect(map.edges.map((e) => `${e.from}>${e.to}`).sort()).toEqual(expected.sort())
+      expect(map.links.map((e) => `${e.from}>${e.to}`).sort()).toEqual(expected.sort())
       const at = new Map(map.nodes.map((n) => [n.skill.id, n]))
-      for (const e of map.edges) {
+      for (const e of map.links) {
         const from = at.get(e.from)!
         const to = at.get(e.to)!
         expect(e.d.startsWith(`M${from.x} ${from.y}`)).toBe(true)
         expect(e.d.endsWith(`${to.x} ${to.y}`)).toBe(true)
         expect(e.d).not.toMatch(/NaN|Infinity/)
       }
+    })
+
+    it(`draws a quiet path: one step from each skill to the next at ${width}px`, () => {
+      expect(map.edges.map((e) => `${e.from}>${e.to}`)).toEqual(
+        curriculum.skills.slice(1).map((s, i) => `${curriculum.skills[i].id}>${s.id}`),
+      )
+      for (const e of map.edges) expect(e.d).not.toMatch(/NaN|Infinity/)
+    })
+
+    it(`keeps path steps out of every label at ${width}px`, () => {
+      const at = new Map(map.nodes.map((n) => [n.skill.id, n]))
+      for (const e of map.edges) {
+        const from = at.get(e.from)!
+        const to = at.get(e.to)!
+        if (from.y === to.y) continue
+        // A step between rows starts below the label block and ends above the next medallion.
+        expect(e.d.startsWith(`M${from.x} ${from.y + NODE_R + LABEL_H}`)).toBe(true)
+        expect(e.d.endsWith(`${to.x} ${to.y - NODE_R}`)).toBe(true)
+      }
+    })
+
+    it(`centres each row of nodes at ${width}px`, () => {
+      const rows = new Map<number, number[]>()
+      for (const n of map.nodes) rows.set(n.y, [...(rows.get(n.y) ?? []), n.x])
+      for (const xs of rows.values()) expect(Math.min(...xs) + Math.max(...xs)).toBeCloseTo(width, 0)
     })
   }
 

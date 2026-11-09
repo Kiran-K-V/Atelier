@@ -125,23 +125,43 @@ function WideMap({ curriculum, states, reduced }: SkillMapProps) {
           <>
             <svg aria-hidden width={layout.width} height={layout.height} className="absolute inset-0 overflow-visible" fill="none">
               {layout.edges.map((e, i) => {
-                const lit = chain && ((chain.up.has(e.from) && chain.up.has(e.to)) || (chain.down.has(e.from) && chain.down.has(e.to)))
+                // Quiet by default: a hairline path. Gold only where the learner has walked, plus the step to the next skill.
                 const walked = states[e.from] === 'mastered'
-                const cls = lit ? 'stroke-accent-strong' : walked ? 'stroke-accent' : 'stroke-text-faint'
+                const next = !walked && states[e.to] === 'recommended' && states[e.from] !== 'later'
+                const cls = walked ? 'stroke-accent' : next ? 'stroke-accent-strong' : 'stroke-text-faint'
+                const base = walked ? 0.85 : next ? 0.6 : 0.22
                 return (
                   <motion.path
                     key={`${e.from}>${e.to}`}
                     d={e.d}
-                    className={`${cls} transition-[stroke,opacity,stroke-width] duration-base ease-standard`}
-                    strokeWidth={lit ? 2 : walked ? 1.5 : 1.25}
+                    className={`${cls} transition-[stroke,opacity] duration-base ease-standard`}
+                    strokeWidth={walked ? 1.5 : 1}
                     strokeLinecap="round"
-                    style={{ opacity: chain && !lit ? 0.12 : lit ? 1 : walked ? 0.85 : 0.4 }}
+                    strokeDasharray={next ? '3 5' : undefined}
+                    style={{ opacity: focus ? base * 0.35 : base }}
                     initial={reduced ? false : { pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={{ duration: sec('deliberate'), ease: bezier('enter'), delay: 0.35 + i * 0.015 }}
+                    transition={{ duration: sec('deliberate'), ease: bezier('enter'), delay: 0.35 + i * 0.02 }}
                   />
                 )
               })}
+              {/* Prerequisites appear only for the skill under the pointer or focus: what it needs, and what it opens. */}
+              {focus &&
+                layout.links
+                  .filter((e) => e.to === focus || e.from === focus)
+                  .map((e) => (
+                    <motion.path
+                      key={`link-${e.from}>${e.to}`}
+                      d={e.d}
+                      className="stroke-accent-strong"
+                      strokeWidth={1.75}
+                      strokeLinecap="round"
+                      strokeDasharray={e.from === focus ? '2 6' : undefined}
+                      initial={reduced ? false : { opacity: 0 }}
+                      animate={{ opacity: 0.95 }}
+                      transition={{ duration: sec('fast'), ease: bezier('standard') }}
+                    />
+                  ))}
             </svg>
 
             <ol className="m-0 list-none p-0">

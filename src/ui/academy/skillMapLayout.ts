@@ -48,7 +48,10 @@ export interface MapLayout {
   readonly colW: number
   readonly bands: readonly MapBand[]
   readonly nodes: readonly MapNode[]
+  /** The path: each skill to the next, plus one connector between levels. Always drawn, quietly. */
   readonly edges: readonly MapEdge[]
+  /** Every prerequisite link. Drawn only for the skill under the pointer or focus. */
+  readonly links: readonly MapEdge[]
 }
 
 const r1 = (n: number) => Math.round(n * 10) / 10
@@ -56,8 +59,8 @@ const r1 = (n: number) => Math.round(n * 10) / 10
 /**
  * Places skills on the illustrated map. Bands follow curriculum level order top to bottom.
  * A skill sits in its `map.col`; a second skill with the same column in one band drops a row.
- * Edges run from each prerequisite to the skill and bend into the lanes between columns
- * so they pass beside, not through, the nodes of the rows they cross. Pure and deterministic.
+ * `edges` is the quiet path through the curriculum. `links` are the prerequisite lines, bent into the
+ * lanes between columns so they pass beside, not through, the nodes they cross. Pure and deterministic.
  */
 export function layoutSkillMap(curriculum: Curriculum, width: number): MapLayout {
   const cols = Math.max(1, ...curriculum.skills.map((s) => s.map.col + 1))
@@ -76,8 +79,13 @@ export function layoutSkillMap(curriculum: Curriculum, width: number): MapLayout
     })
     const rows = Math.max(1, ...placed.map((p) => p.row + 1))
     const height = PAD_TOP + (rows - 1) * ROW_H + 2 * NODE_R + LABEL_H + PAD_BOTTOM
-    for (const p of placed) {
-      nodes.push({ ...p, band, x: r1(colW * (p.skill.map.col + 0.5)), y: y + PAD_TOP + NODE_R + p.row * ROW_H })
+    // Each row is centred as a block, so a short row sits under its neighbours instead of hugging the left.
+    for (let row = 0; row < rows; row++) {
+      const inRow = placed.filter((p) => p.row === row).sort((a, b) => a.skill.map.col - b.skill.map.col)
+      const offset = (cols - inRow.length) / 2
+      inRow.forEach((p, k) => {
+        nodes.push({ ...p, band, x: r1(colW * (offset + k + 0.5)), y: y + PAD_TOP + NODE_R + row * ROW_H })
+      })
     }
     bands.push({ level, y, height })
     y += height
@@ -89,16 +97,42 @@ export function layoutSkillMap(curriculum: Curriculum, width: number): MapLayout
   const rowYs = [...new Set(nodes.map((n) => n.y))].sort((a, b) => a - b)
   const rowNodes = new Map(rowYs.map((ry) => [ry, nodes.filter((n) => n.y === ry)]))
 
-  const edges: MapEdge[] = []
+  const links: MapEdge[] = []
   for (const to of nodes) {
     for (const pre of to.skill.prerequisites) {
       const from = byId.get(pre)
       if (!from) continue
-      edges.push({ from: from.skill.id, to: to.skill.id, d: edgePath(from, to, colW, rowYs, rowNodes) })
+      links.push({ from: from.skill.id, to: to.skill.id, d: edgePath(from, to, colW, rowYs, rowNodes) })
     }
   }
 
-  return { width, height: y, colW, bands, nodes, edges }
+  // The path follows curriculum order; the step between rows or levels drops through the empty gap under the labels.
+  const edges: MapEdge[] = []
+  for (let i = 1; i < nodes.length; i++) {
+    edges.push({ from: nodes[i - 1].skill.id, to: nodes[i].skill.id, d: stepPath(nodes[i - 1], nodes[i]) })
+  }
+
+  return { width, height: y, colW, bands, nodes, edges, links }
+}
+
+const CORNER = 10
+
+/**
+ * One step of the path. Same row: a straight line between the medallions. Otherwise leaves from under the
+ * label, runs along the gap between rows or levels, and arrives above the next medallion, so it never crosses text.
+ */
+function stepPath(a: MapNode, b: MapNode): string {
+  if (a.y === b.y) return `M${a.x} ${a.y} L${b.x} ${b.y}`
+  const y0 = a.y + NODE_R + LABEL_H
+  const y1 = b.y - NODE_R
+  if (a.x === b.x) return `M${a.x} ${y0} L${b.x} ${y1}`
+  const ym = r1((y0 + y1) / 2)
+  const dir = b.x > a.x ? 1 : -1
+  const c = Math.min(CORNER, Math.abs(b.x - a.x) / 2)
+  return (
+    `M${a.x} ${y0} L${a.x} ${r1(ym - c)} Q${a.x} ${ym} ${r1(a.x + dir * c)} ${ym}` +
+    ` L${r1(b.x - dir * c)} ${ym} Q${b.x} ${ym} ${b.x} ${r1(ym + c)} L${b.x} ${y1}`
+  )
 }
 
 function edgePath(

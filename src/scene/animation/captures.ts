@@ -38,7 +38,7 @@ const topple: Capture = ({ ghost, direction: [dx, dz] }) => {
   }
   const tl = gsap.timeline()
   // Struck first, then it falls: the knock clears the attacker's footprint before the body tips over it.
-  tl.to(pose, { d: KNOCK, duration: 0.24, ease: 'power3.out', onUpdate: apply }, 0)
+  tl.to(pose, { d: KNOCK, duration: 0.18, ease: 'power3.out', onUpdate: apply }, 0)
   tl.to(pose, { a: 1.38, duration: 0.34, ease: 'power2.in', onUpdate: apply }, 0.04)
   tl.to(pose, { a: 1.2, duration: 0.09, ease: 'power1.out', onUpdate: apply })
   tl.to(pose, { a: 1.38, duration: 0.11, ease: 'power1.in', onUpdate: apply })

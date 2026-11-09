@@ -94,12 +94,12 @@ export function signatureTiming(sig: MotionSignature, distance: number, capturin
  * reacting at the stop instead leaves the two bodies sharing a square. Leapers land from above.
  */
 const CONTACT_LEAD: Record<MotionSignature, number> = {
-  pawnStep: 0.12,
+  pawnStep: 0.18,
   knightLeap: 0.04,
-  bishopGlide: 0.05,
-  rookSlide: 0.07,
-  queenFlow: 0.05,
-  kingProcession: 0.14,
+  bishopGlide: 0.07,
+  rookSlide: 0.08,
+  queenFlow: 0.07,
+  kingProcession: 0.18,
   rookHop: 0,
   instant: 0,
 }
