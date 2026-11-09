@@ -1,3 +1,4 @@
+import { TACTIC_NAME } from '../../rules/tacticNames'
 import type { Color, GameStatus, PieceInstance, PieceSymbol, PlayedMove, Square } from '../../rules/types'
 
 const COLOR_NAME: Record<Color, string> = { w: 'White', b: 'Black' }
@@ -35,6 +36,8 @@ export function describeStatus(status: GameStatus): string {
   }
 }
 
+const capitalise = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1)
+
 function describeAction(move: PlayedMove): string {
   const who = colorName(move.color)
   if (move.rookMove) {
@@ -52,10 +55,13 @@ function describeAction(move: PlayedMove): string {
 /**
  * Spoken form of a move, for example "White knight from g1 to f3" or "Black pawn takes e4".
  * Pass the game status after the move so mate and draws are spoken too.
+ * The strongest tactic, when there is one, closes the sentence: "White knight takes f7. Check. Fork".
  */
 export function describeMove(move: PlayedMove, status: GameStatus = { kind: 'playing' }): string {
   const result = status.kind !== 'playing' ? describeStatus(status) : move.isCheck ? 'Check' : ''
-  return result ? `${describeAction(move)}. ${result}` : describeAction(move)
+  const primary = move.tactics[0]
+  const tactic = primary ? capitalise(TACTIC_NAME[primary.kind]) : ''
+  return [describeAction(move), result, tactic].filter(Boolean).join('. ')
 }
 
 /** Spoken form of one square for keyboard play: "e2, white pawn" or "e4, empty". */

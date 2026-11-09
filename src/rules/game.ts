@@ -1,6 +1,6 @@
 import type { Chess, Move } from 'chess.js'
 import type { RookMove } from './pieces'
-import type { GameStatus, PieceInstance, PlayedMove, Square } from './types'
+import type { GameStatus, PieceInstance, PlayedMove, Square, Tactic } from './types'
 
 export function statusOf(chess: Chess): GameStatus {
   if (chess.isCheckmate()) return { kind: 'checkmate', winner: chess.turn() === 'w' ? 'b' : 'w' }
@@ -51,6 +51,7 @@ export function toPlayedMove(
   captured: PieceInstance | undefined,
   rookMove: RookMove | undefined,
   chessAfter: Chess,
+  tactics: readonly Tactic[],
 ): PlayedMove {
   return {
     ply,
@@ -64,5 +65,6 @@ export function toPlayedMove(
     rookMove,
     isCheck: chessAfter.inCheck(),
     fenAfter: chessAfter.fen(),
+    tactics,
   }
 }

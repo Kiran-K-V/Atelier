@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { TACTIC_NAME } from '../../rules/tacticNames'
 import type { PlayedMove } from '../../rules/types'
 import { useGame } from '../../store/game'
 import { useSettings } from '../../store/settings'
@@ -21,12 +22,15 @@ function pairUp(history: readonly PlayedMove[]): Pair[] {
 
 function MoveCell({ move, current }: { move: PlayedMove | undefined; current: boolean }) {
   if (!move) return <span />
+  const primary = move.tactics[0]
   return (
     <span
       aria-current={current ? 'step' : undefined}
-      className={`min-w-16 justify-self-start rounded-xs px-2 py-1 ${current ? 'bg-surface3 text-text shadow-[inset_2px_0_0_var(--color-accent)]' : 'text-text'}`}
+      title={primary ? move.tactics.map((t) => TACTIC_NAME[t.kind]).join(', ') : undefined}
+      className={`flex min-w-16 max-w-full items-baseline gap-1.5 justify-self-start rounded-xs px-2 py-1 ${current ? 'bg-surface3 text-text shadow-[inset_2px_0_0_var(--color-accent)]' : 'text-text'}`}
     >
-      {move.san}
+      <span className="shrink-0">{move.san}</span>
+      {primary && <span className="min-w-0 truncate font-mono text-[0.625rem] uppercase tracking-[0.08em] text-accent-strong">{TACTIC_NAME[primary.kind]}</span>}
     </span>
   )
 }

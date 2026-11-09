@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import type { Move } from 'chess.js'
 import { isAbortError, StockfishEngine } from '../engine/engine'
 import type { ChessEngine } from '../engine/engine'
+import { detectTactics } from '../rules/tactics'
 import { checkersOf, checkSquareOf, isPromotionMove, legalTargets, statusOf, toPlayedMove } from '../rules/game'
 import { applyMove, initialPieces, piecesFromBoard } from '../rules/pieces'
 import type { Color, MoveIntent, PieceInstance, Square } from '../rules/types'
@@ -92,11 +93,12 @@ function playChess(intent: MoveIntent): Move | null {
 
 /** Plays on chess.js and records it in pieces/history/status. Null when illegal. */
 function commitMove(intent: MoveIntent): boolean {
+  const fenBefore = chess.fen()
   const move = playChess(intent)
   if (!move) return false
   const s = useGame.getState()
   const applied = applyMove(s.pieces, move)
-  const played = toPlayedMove(move, s.history.length + 1, applied.captured, applied.rookMove, chess)
+  const played = toPlayedMove(move, s.history.length + 1, applied.captured, applied.rookMove, chess, detectTactics(fenBefore, intent))
   useGame.setState({
     ...position(),
     ...NO_SELECTION,

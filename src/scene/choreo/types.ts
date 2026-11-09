@@ -1,4 +1,4 @@
-import type { Color, PieceSymbol, Square } from '../../rules/types'
+import type { Color, PieceSymbol, Square, Tactic } from '../../rules/types'
 
 /** Everything the planner needs to know about one move, derived after the store applied it. */
 export interface MoveEvent {
@@ -17,6 +17,8 @@ export interface MoveEvent {
   /** The checked king's square, when in check. */
   readonly kingSquare: Square | null
   readonly mate: boolean
+  /** Tactics the move created for the mover, strongest first. */
+  readonly tactics: readonly Tactic[]
 }
 
 export type MotionSignature =
@@ -54,6 +56,13 @@ export type FxEvent =
   | { readonly type: 'motes'; readonly square: Square; readonly color: Color }
   | { readonly type: 'ghostTrail'; readonly square: Square; readonly color: Color }
   | { readonly type: 'mood'; readonly mood: Mood }
+  /**
+   * A tactic's lines on the board. `primary` is the labelled one (bright); others are dimmer.
+   * Persists until the next move, like the check line.
+   */
+  | { readonly type: 'tactic'; readonly tactic: Tactic; readonly primary: boolean }
+  /** The callout word ("FORK!") floating over `square`, then fading. */
+  | { readonly type: 'callout'; readonly tactic: Tactic; readonly square: Square; readonly duration: number }
 
 export type Mood = 'normal' | 'check' | 'mate'
 
@@ -76,6 +85,8 @@ export type SoundCue =
   | 'promotion'
   | 'enPassant'
   | 'illegal'
+  /** Stinger under a tactic callout. */
+  | 'tactic'
 
 export type CameraAction =
   | { readonly type: 'shake'; readonly intensity: number; readonly duration: number }
@@ -120,4 +131,6 @@ export interface ChoreoPlan {
 
 export interface PlanOptions {
   readonly reducedMotion: boolean
+  /** User setting: draw tactic lines and callouts. */
+  readonly showTactics: boolean
 }

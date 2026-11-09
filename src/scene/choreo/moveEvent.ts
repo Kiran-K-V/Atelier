@@ -25,5 +25,6 @@ export function toMoveEvent(played: PlayedMove, pieces: readonly PieceInstance[]
     checkers: after.checkers,
     kingSquare: after.checkSquare,
     mate: after.status.kind === 'checkmate',
+    tactics: played.tactics,
   }
 }

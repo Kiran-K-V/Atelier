@@ -31,7 +31,7 @@ export function Director() {
     const before = seen.current
     if (before === history) return
     seen.current = history
-    const reducedMotion = useSettings.getState().reducedMotion
+    const { reducedMotion, tactics: showTactics } = useSettings.getState()
     const last = history.at(-1)
     const grewByOne = last !== undefined && history.length === before.length + 1 && history[before.length - 1] === before.at(-1)
     if (!grewByOne) {
@@ -42,7 +42,7 @@ export function Director() {
     const event = toMoveEvent(last, game.pieces, game)
     const covered = new Set<string>()
     if (event) {
-      const plan = planMove(event, { reducedMotion })
+      const plan = planMove(event, { reducedMotion, showTactics })
       for (const b of plan.beats) if (b.kind === 'move') covered.add(b.id)
       performer.enqueue({ plan, ply: event.ply })
     } else {

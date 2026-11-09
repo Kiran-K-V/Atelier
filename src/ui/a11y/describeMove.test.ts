@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { PieceInstance, PlayedMove } from '../../rules/types'
+import type { PieceInstance, PlayedMove, Tactic } from '../../rules/types'
 import { describeMove, describeSquare, describeStatus } from './describeMove'
 
 const move = (over: Partial<PlayedMove>): PlayedMove => ({
@@ -11,6 +11,7 @@ const move = (over: Partial<PlayedMove>): PlayedMove => ({
   san: 'Nf3',
   isCheck: false,
   fenAfter: '',
+  tactics: [],
   ...over,
 })
 
@@ -65,6 +66,37 @@ describe('describeMove', () => {
 
   it('appends a draw result', () => {
     expect(describeMove(move({}), { kind: 'stalemate' })).toBe('White knight from g1 to f3. Stalemate')
+  })
+})
+
+describe('describeMove tactics', () => {
+  const fork: Tactic = { kind: 'fork', by: 'w', attacker: 'f7', targets: ['e8', 'h8'] }
+  const pin: Tactic = { kind: 'pin', by: 'w', attacker: 'b5', pinned: 'c6', behind: 'e8', absolute: true }
+  const capture = { id: 'bp6', type: 'p', square: 'f7' } as const
+
+  it('appends the primary tactic after a check', () => {
+    expect(describeMove(move({ to: 'f7', captured: capture, isCheck: true, tactics: [fork] }))).toBe(
+      'White knight takes f7. Check. Fork',
+    )
+  })
+
+  it('appends a tactic to a quiet move', () => {
+    expect(describeMove(move({ tactics: [fork] }))).toBe('White knight from g1 to f3. Fork')
+  })
+
+  it('speaks only the first tactic', () => {
+    expect(describeMove(move({ tactics: [fork, pin] }))).toBe('White knight from g1 to f3. Fork')
+  })
+
+  it('capitalises the multi-word name', () => {
+    const discovered: Tactic = { kind: 'discovered', by: 'w', mover: 'f3', vacated: 'g1', attacker: 'a1', target: 'h8', check: false }
+    expect(describeMove(move({ tactics: [discovered] }))).toBe('White knight from g1 to f3. Discovered attack')
+  })
+
+  it('follows the game result', () => {
+    expect(describeMove(move({ isCheck: true, tactics: [fork] }), { kind: 'checkmate', winner: 'w' })).toBe(
+      'White knight from g1 to f3. Checkmate, White wins. Fork',
+    )
   })
 })
 

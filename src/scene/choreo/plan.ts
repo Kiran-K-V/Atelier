@@ -1,4 +1,4 @@
-import type { PieceSymbol, Square } from '../../rules/types'
+import type { PieceSymbol, Square, Tactic } from '../../rules/types'
 import type { Beat, CaptureStyle, ChoreoPlan, MotionSignature, MoveEvent, PlanOptions, SoundCue } from './types'
 
 const SIGNATURE: Record<PieceSymbol, MotionSignature> = {
@@ -108,7 +108,7 @@ function beatEnd(b: Beat): number {
   }
 }
 
-export function planMove(e: MoveEvent, { reducedMotion }: PlanOptions): ChoreoPlan {
+export function planMove(e: MoveEvent, { reducedMotion, showTactics }: PlanOptions): ChoreoPlan {
   const beats: Beat[] = []
   const add = (b: Beat) => beats.push(b)
   const capturing = e.captured !== undefined
@@ -158,6 +158,8 @@ export function planMove(e: MoveEvent, { reducedMotion }: PlanOptions): ChoreoPl
     settled = Math.max(settled, at + duration)
   }
 
+  if (showTactics && e.tactics.length > 0) addTactics(e, settled, main.impact, add)
+
   if (e.kingSquare && e.checkers.length > 0) {
     const king = e.kingSquare
     const at = e.mate ? main.impact : settled + 0.05
@@ -174,6 +176,57 @@ export function planMove(e: MoveEvent, { reducedMotion }: PlanOptions): ChoreoPl
 
   beats.sort((a, b) => a.at - b.at)
   return { beats, duration: beats.reduce((m, b) => Math.max(m, beatEnd(b)), 0) }
+}
+
+/** Most tactics a single move draws; the rest are rare and would only clutter the board. */
+export const MAX_TACTICS = 3
+/** Gap after the move settles before the tactic reveal starts. */
+export const TACTIC_DELAY = 0.12
+const TACTIC_STAGGER = 0.12
+/** The label lands while the primary tactic's lines are still drawing. */
+const CALLOUT_DELAY = 0.18
+export const CALLOUT_DURATION = 1.6
+
+/** The square the callout floats over: the piece the tactic is about. */
+export function tacticAnchor(t: Tactic): Square {
+  switch (t.kind) {
+    case 'fork':
+      return t.attacker
+    case 'pin':
+      return t.pinned
+    case 'skewer':
+      return t.front
+    case 'discovered':
+      return t.target
+    case 'doubleCheck':
+      return t.king
+    case 'backRank':
+      return t.entry
+    case 'sacrifice':
+      return t.square
+  }
+}
+
+/**
+ * Tactics read after the move lands: lines reveal in priority order, then the label for the strongest.
+ * On mate the cinematic owns the stage (T6); only a back-rank mate keeps its label.
+ */
+function addTactics(e: MoveEvent, settled: number, impact: number, add: (b: Beat) => void): void {
+  if (e.mate) {
+    const backRank = e.tactics.find((t) => t.kind === 'backRank' && t.mate)
+    if (backRank) add({ kind: 'fx', at: impact + 0.3, fx: { type: 'callout', tactic: backRank, square: tacticAnchor(backRank), duration: CALLOUT_DURATION } })
+    return
+  }
+  const at = settled + TACTIC_DELAY
+  e.tactics.slice(0, MAX_TACTICS).forEach((tactic, i) => {
+    add({ kind: 'fx', at: at + i * TACTIC_STAGGER, fx: { type: 'tactic', tactic, primary: i === 0 } })
+  })
+  const primary = e.tactics[0]
+  const square = tacticAnchor(primary)
+  const calloutAt = at + CALLOUT_DELAY
+  add({ kind: 'fx', at: calloutAt, fx: { type: 'callout', tactic: primary, square, duration: CALLOUT_DURATION } })
+  add({ kind: 'sound', at: calloutAt, cue: 'tactic', square })
+  add({ kind: 'haptic', at: calloutAt, pattern: 8 })
 }
 
 function addSignatureFx(

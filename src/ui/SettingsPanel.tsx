@@ -10,6 +10,7 @@ import { useFocusTrap } from './useFocusTrap'
 type QualityChoice = QualityTier | 'auto'
 type MotionChoice = 'system' | 'on' | 'off'
 type SoundChoice = 'on' | 'off'
+type TacticsChoice = 'on' | 'off'
 
 const THEMES: readonly { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -28,6 +29,10 @@ const MOTIONS: readonly { value: MotionChoice; label: string }[] = [
   { value: 'off', label: 'Off' },
 ]
 const SOUNDS: readonly { value: SoundChoice; label: string }[] = [
+  { value: 'on', label: 'On' },
+  { value: 'off', label: 'Off' },
+]
+const TACTICS: readonly { value: TacticsChoice; label: string }[] = [
   { value: 'on', label: 'On' },
   { value: 'off', label: 'Off' },
 ]
@@ -112,6 +117,13 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
           options={SOUNDS}
           value={s.sound ? 'on' : 'off'}
           onChange={(v) => s.setSound(v === 'on')}
+        />
+        <Segmented
+          legend="Tactic hints"
+          columns={2}
+          options={TACTICS}
+          value={s.tactics ? 'on' : 'off'}
+          onChange={(v) => s.setTactics(v === 'on')}
         />
       </motion.div>
     </motion.div>

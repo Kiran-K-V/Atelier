@@ -56,6 +56,8 @@ export interface SettingsState {
   readonly reducedMotion: boolean
   readonly reducedMotionUser: boolean | null
   readonly sound: boolean
+  /** Draw tactic lines and callouts after a move. */
+  readonly tactics: boolean
 }
 
 export interface SettingsActions {
@@ -64,4 +66,5 @@ export interface SettingsActions {
   setDetectedQuality: (q: QualityTier) => void
   setReducedMotion: (v: boolean | null) => void
   setSound: (v: boolean) => void
+  setTactics: (v: boolean) => void
 }

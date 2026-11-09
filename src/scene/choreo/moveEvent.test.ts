@@ -14,7 +14,7 @@ function play(moves: readonly MoveIntent[], fen?: string) {
     const move = chess.move(intent)
     const applied = applyMove(pieces, move)
     pieces = applied.pieces
-    const played = toPlayedMove(move, i + 1, applied.captured, applied.rookMove, chess)
+    const played = toPlayedMove(move, i + 1, applied.captured, applied.rookMove, chess, [])
     event = toMoveEvent(played, pieces, { checkers: checkersOf(chess), checkSquare: checkSquareOf(chess), status: statusOf(chess) })
   })
   if (!event) throw new Error('no event')

@@ -179,6 +179,14 @@ export const cues: Record<SoundCue, (v: Voice) => void> = {
     v.noise({ at: 0.17, filter: 'bandpass', freq: 2400, freqEnd: 1200, q: 3, gain: 0.1, attack: 0.06, dur: 0.2 })
   },
 
+  tactic(v) {
+    v.wet(0.45)
+    bell(v, 0, 880, 0.35, 0.07)
+    bell(v, 0.09, 1318.5, 0.5, 0.08)
+    v.tone({ at: 0.09, freq: 2637, gain: 0.02, attack: 0.01, dur: 0.45 })
+    v.noise({ at: 0.09, filter: 'bandpass', freq: 5000, freqEnd: 8000, q: 2, gain: 0.025, attack: 0.04, dur: 0.4 })
+  },
+
   illegal(v) {
     v.wet(0.05)
     tap(v, 0, 170, 0.45)

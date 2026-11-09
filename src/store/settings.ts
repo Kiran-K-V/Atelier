@@ -6,7 +6,7 @@ const REDUCE_QUERY = '(prefers-reduced-motion: reduce)'
 const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark']
 const TIERS: readonly QualityTier[] = ['low', 'medium', 'high']
 
-type Persisted = Pick<SettingsState, 'theme' | 'quality' | 'qualityAuto' | 'reducedMotionUser' | 'sound'>
+type Persisted = Pick<SettingsState, 'theme' | 'quality' | 'qualityAuto' | 'reducedMotionUser' | 'sound' | 'tactics'>
 
 const canMatchMedia = (): boolean => typeof window !== 'undefined' && typeof window.matchMedia === 'function'
 
@@ -49,6 +49,7 @@ function readPersisted(raw: unknown): Partial<Persisted> {
   if (typeof r.qualityAuto === 'boolean') out.qualityAuto = r.qualityAuto
   if (typeof r.reducedMotionUser === 'boolean' || r.reducedMotionUser === null) out.reducedMotionUser = r.reducedMotionUser
   if (typeof r.sound === 'boolean') out.sound = r.sound
+  if (typeof r.tactics === 'boolean') out.tactics = r.tactics
   return out
 }
 
@@ -61,12 +62,14 @@ export const useSettings = create<SettingsState & SettingsActions>()(
       reducedMotion: systemPrefersReducedMotion(),
       reducedMotionUser: null,
       sound: true,
+      tactics: true,
 
       setTheme: (theme) => set({ theme }),
       setQuality: (q) => set(q === 'auto' ? { qualityAuto: true } : { quality: q, qualityAuto: false }),
       setDetectedQuality: (quality) => set((s) => (s.qualityAuto ? { quality } : s)),
       setReducedMotion: (v) => set({ reducedMotionUser: v, reducedMotion: v ?? systemPrefersReducedMotion() }),
       setSound: (sound) => set({ sound }),
+      setTactics: (tactics) => set({ tactics }),
     }),
     {
       name: 'atelier-settings',
@@ -77,6 +80,7 @@ export const useSettings = create<SettingsState & SettingsActions>()(
         qualityAuto: s.qualityAuto,
         reducedMotionUser: s.reducedMotionUser,
         sound: s.sound,
+        tactics: s.tactics,
       }),
       merge: (persisted, current) => {
         const next = { ...current, ...readPersisted(persisted) }
