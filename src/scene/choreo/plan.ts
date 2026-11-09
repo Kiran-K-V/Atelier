@@ -88,6 +88,22 @@ export function signatureTiming(sig: MotionSignature, distance: number, capturin
   }
 }
 
+/**
+ * Seconds before the attacker's final stop that it first touches the captured piece. Footprints
+ * are about 0.3 radius each, so contact starts while the attacker is still ~0.6 squares out;
+ * reacting at the stop instead leaves the two bodies sharing a square. Leapers land from above.
+ */
+const CONTACT_LEAD: Record<MotionSignature, number> = {
+  pawnStep: 0.12,
+  knightLeap: 0.04,
+  bishopGlide: 0.05,
+  rookSlide: 0.07,
+  queenFlow: 0.05,
+  kingProcession: 0.14,
+  rookHop: 0,
+  instant: 0,
+}
+
 function beatEnd(b: Beat): number {
   switch (b.kind) {
     case 'move':
@@ -136,12 +152,13 @@ export function planMove(e: MoveEvent, { reducedMotion, showTactics }: PlanOptio
   if (e.captured) {
     const style: CaptureStyle = reducedMotion ? 'fade' : CAPTURE_STYLE[e.piece]
     const dir = direction(e.from, e.to)
-    add({ kind: 'capture', at: main.impact, id: e.captured.id, style, square: e.captured.square, direction: dir })
-    add({ kind: 'sound', at: main.impact, cue: CAPTURE_SOUND[style], square: e.captured.square })
-    add({ kind: 'haptic', at: main.impact, pattern: 20 })
-    if (style === 'shatter') add({ kind: 'fx', at: main.impact, fx: { type: 'shards', square: e.captured.square, color: e.color === 'w' ? 'b' : 'w', direction: dir } })
-    if (style === 'slice') add({ kind: 'fx', at: main.impact - 0.04, fx: { type: 'slash', square: e.captured.square, direction: dir } })
-    if (style === 'dissolve') add({ kind: 'fx', at: main.impact, fx: { type: 'motes', square: e.captured.square, color: e.color === 'w' ? 'b' : 'w' } })
+    const contact = Math.max(0, main.impact - CONTACT_LEAD[signature])
+    add({ kind: 'capture', at: contact, id: e.captured.id, style, square: e.captured.square, direction: dir })
+    add({ kind: 'sound', at: contact, cue: CAPTURE_SOUND[style], square: e.captured.square })
+    add({ kind: 'haptic', at: contact, pattern: 20 })
+    if (style === 'shatter') add({ kind: 'fx', at: contact, fx: { type: 'shards', square: e.captured.square, color: e.color === 'w' ? 'b' : 'w', direction: dir } })
+    if (style === 'slice') add({ kind: 'fx', at: Math.max(0, contact - 0.04), fx: { type: 'slash', square: e.captured.square, direction: dir } })
+    if (style === 'dissolve') add({ kind: 'fx', at: contact, fx: { type: 'motes', square: e.captured.square, color: e.color === 'w' ? 'b' : 'w' } })
     if (e.enPassant) {
       add({ kind: 'sound', at: 0, cue: 'enPassant', square: e.to })
       if (!reducedMotion) add({ kind: 'fx', at: 0, fx: { type: 'ghostTrail', square: e.to, color: e.color === 'w' ? 'b' : 'w' } })

@@ -24,21 +24,26 @@ const fade: Capture = ({ ghost }) => fadeOut(gsap.timeline(), ghost, 0, 0.16)
 
 const shatter: Capture = ({ ghost }) => gsap.timeline().set(ghost.group, { visible: false }, 0).set({}, {}, 0.05)
 
+/** Centre-to-centre distance at which two piece footprints (about 0.3 radius each) stop overlapping. */
+const KNOCK = 0.62
+
 const topple: Capture = ({ ghost, direction: [dx, dz] }) => {
-  const rest = ghost.group.position.clone()
-  const base = rest.clone()
-  const pose = { a: 0, y: 0 }
+  const base = ghost.group.position.clone()
+  const rest = base.clone()
+  const pose = { a: 0, y: 0, d: 0 }
   const r = BASE_RADIUS[ghost.type]
   const apply = () => {
-    rest.y = base.y + pose.y
+    rest.set(base.x + dx * pose.d, base.y + pose.y, base.z + dz * pose.d)
     tipPose(ghost.group, rest, dx, dz, r, pose.a)
   }
   const tl = gsap.timeline()
-  tl.to(pose, { a: 1.38, duration: 0.34, ease: 'power2.in', onUpdate: apply }, 0)
+  // Struck first, then it falls: the knock clears the attacker's footprint before the body tips over it.
+  tl.to(pose, { d: KNOCK, duration: 0.24, ease: 'power3.out', onUpdate: apply }, 0)
+  tl.to(pose, { a: 1.38, duration: 0.34, ease: 'power2.in', onUpdate: apply }, 0.04)
   tl.to(pose, { a: 1.2, duration: 0.09, ease: 'power1.out', onUpdate: apply })
   tl.to(pose, { a: 1.38, duration: 0.11, ease: 'power1.in', onUpdate: apply })
-  tl.to(pose, { y: -0.35, duration: 0.34, ease: 'power2.in', onUpdate: apply }, 0.54)
-  return fadeOut(tl, ghost, 0.58, 0.3)
+  tl.to(pose, { y: -0.35, duration: 0.34, ease: 'power2.in', onUpdate: apply }, 0.58)
+  return fadeOut(tl, ghost, 0.62, 0.3)
 }
 
 const shove: Capture = ({ ghost, direction: [dx, dz] }) => {
