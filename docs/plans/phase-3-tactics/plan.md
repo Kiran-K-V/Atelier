@@ -26,4 +26,4 @@ flowchart LR
 | T5 | Sacrifice vs blunder | Label a sacrifice only when the move also gives check or creates another tactic | assumed |
 | T6 | On checkmate | Mate cinematic owns the stage; tactic lines and callout are skipped except back-rank mate label | assumed |
 | T7 | Reduced motion | Lines and callout still show (information); no motion, short fades | assumed |
-| T8 | Persistence | Lines bright on reveal, then dim; end at next move (like the check line) | assumed |
+| T8 | Persistence | Lines bright on reveal, then dim; end when the next move's performance starts (`presentation.stage`), not on store history, because a fast engine reply would erase them unseen | assumed |

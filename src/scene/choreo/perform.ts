@@ -1,7 +1,7 @@
 import { playSound } from '../../audio'
 import { gDur, gEase, gsap } from '../../motion/ease'
 import { useGame } from '../../store/game'
-import { setCinematic, setSettledPly } from '../../store/presentation'
+import { nextStage, setCinematic, setSettledPly } from '../../store/presentation'
 import { captureTimeline, ghostTargets } from '../animation/captures'
 import { kingTopple } from '../animation/pivot'
 import { motionTargets, signatures } from '../animation/signatures'
@@ -146,6 +146,7 @@ export function createPerformer(): Performer {
       playNext()
     })
     current = tl
+    nextStage()
     setCinematic(true)
     tl.timeScale(speed).play()
   }
@@ -182,6 +183,7 @@ export function createPerformer(): Performer {
       const dragging = useInteraction.getState().dragging
       for (const h of registry.pieces()) if (h.id !== dragging) returnHome(h, reducedMotion)
       registry.takeMoved()
+      nextStage()
       fxBus.emit({ type: 'mood', mood: 'normal' })
       cameraBus.emit({ type: 'release', duration: 0.8 })
       setCinematic(false)

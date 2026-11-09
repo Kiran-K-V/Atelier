@@ -9,9 +9,16 @@ import { create } from 'zustand'
 export interface PresentationState {
   readonly cinematic: boolean
   readonly settledPly: number
+  readonly stage: number
 }
 
-export const usePresentation = create<PresentationState>()(() => ({ cinematic: false, settledPly: 0 }))
+export const usePresentation = create<PresentationState>()(() => ({ cinematic: false, settledPly: 0, stage: 0 }))
 
 export const setCinematic = (cinematic: boolean) => usePresentation.setState({ cinematic })
 export const setSettledPly = (settledPly: number) => usePresentation.setState({ settledPly })
+/**
+ * Bumped when the performer starts a move's performance or resets the board. Lingering effects
+ * (check and tactic lines) belong to the stage they were emitted in and end when it changes, so
+ * they follow what is on screen, not the store, which can be a fast engine reply ahead.
+ */
+export const nextStage = () => usePresentation.setState((s) => ({ stage: s.stage + 1 }))

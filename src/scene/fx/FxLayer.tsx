@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import * as THREE from 'three'
-import { useGame } from '../../store/game'
+import { usePresentation } from '../../store/presentation'
 import { useSettings } from '../../store/settings'
 import { fxBus } from '../choreo/bus'
 import type { FxEvent } from '../choreo/types'
@@ -28,23 +28,11 @@ const MAX_LIVE = 48
  */
 const FX_LAYER = 1
 
-type ThreatEvent = Extract<FxEvent, { type: 'threatLine' }>
-
-type TacticEvent = Extract<FxEvent, { type: 'tactic' | 'callout' }>
-
 /** Effects that carry information, so they still show under reduced motion (P7, T7). */
 const INFORMATIVE: ReadonlySet<FxEvent['type']> = new Set(['threatLine', 'tactic', 'callout'])
 
-/** Tactic visuals belong to the latest move; a backlogged plan must not draw an older move's tactic. */
-function tacticCurrent(e: TacticEvent): boolean {
-  return useGame.getState().history.at(-1)?.tactics.includes(e.tactic) ?? false
-}
-
-/** A threat line is valid only while the store still shows that exact check. */
-function threatHolds(e: ThreatEvent): boolean {
-  const { checkSquare, checkers } = useGame.getState()
-  return checkSquare === e.to && checkers.includes(e.from)
-}
+/** Effects that linger after their move's performance, until the next stage (P8, T8). */
+const LINGERING: ReadonlySet<FxEvent['type']> = new Set(['threatLine', 'tactic', 'callout'])
 
 /**
  * Renders what the performer's fx events mean. Each event becomes a short-lived instance that
@@ -64,8 +52,6 @@ export function FxLayer() {
       fxBus.on((event) => {
         if (event.type === 'mood') return
         if (useSettings.getState().reducedMotion && !INFORMATIVE.has(event.type)) return
-        if (event.type === 'threatLine' && !threatHolds(event)) return
-        if ((event.type === 'tactic' || event.type === 'callout') && !tacticCurrent(event)) return
         const item: Live = { key: nextKey.current++, event, startedAt: clock.elapsedTime, ending: false }
         setLive((list) => [...(list.length >= MAX_LIVE ? list.slice(1) : list), item])
       }),
@@ -74,11 +60,9 @@ export function FxLayer() {
 
   useEffect(
     () =>
-      useGame.subscribe((s, prev) => {
-        const moved = s.history !== prev.history
-        // Check lines end when the check does; tactic lines and labels end with any history change (T8).
-        const ends = (l: Live) =>
-          !l.ending && ((l.event.type === 'threatLine' && (moved || !threatHolds(l.event))) || (moved && (l.event.type === 'tactic' || l.event.type === 'callout')))
+      usePresentation.subscribe((s, prev) => {
+        if (s.stage === prev.stage) return
+        const ends = (l: Live) => !l.ending && LINGERING.has(l.event.type)
         setLive((list) => (list.some(ends) ? list.map((l) => (ends(l) ? { ...l, ending: true } : l)) : list))
       }),
     [],
