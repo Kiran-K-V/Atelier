@@ -27,3 +27,4 @@ npm run build
 - `src/ui/`: 2D shell, panel, overlays, keyboard play, screen-reader announcer.
 
 Stockfish is GPLv3. It runs as a separate file in `public/engine/`.
+# Atelier
