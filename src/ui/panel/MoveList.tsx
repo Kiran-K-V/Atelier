@@ -3,7 +3,6 @@ import { TACTIC_NAME } from '../../rules/tacticNames'
 import type { PlayedMove } from '../../rules/types'
 import { useGame } from '../../store/game'
 import { useSettings } from '../../store/settings'
-import { labelClass } from '../styles'
 
 interface Pair {
   readonly number: number
@@ -46,13 +45,13 @@ export function MoveList() {
   }, [history.length, reduced])
 
   return (
-    <section aria-label="Moves" className="flex min-h-56 flex-1 flex-col border-t border-line">
-      <h2 className={`${labelClass} m-0 px-4 pb-2 pt-5 font-normal lg:px-6`}>Moves</h2>
+    <section aria-label="Moves" className="flex min-h-48 flex-1 flex-col border-t border-line">
+      <h2 className="sr-only">Moves</h2>
       {/* Absolute inner scroller: the list scrolls on its own and never stretches the panel. */}
       <div className="relative flex-1">
-        <div ref={scroller} tabIndex={0} aria-label="Move list" role="region" className="atelier-scroll absolute inset-0 overflow-y-auto px-2 pb-4 lg:px-4">
+        <div ref={scroller} tabIndex={0} aria-label="Move list" role="region" className="atelier-scroll absolute inset-0 overflow-y-auto px-2 py-3 lg:px-4">
           {pairs.length === 0 ? (
-            <p className="m-0 px-2 text-sm text-text-muted">No moves yet. White opens.</p>
+            <p className="m-0 grid h-full place-items-center text-sm text-text-muted">White opens.</p>
           ) : (
             <ol className="m-0 list-none p-0 font-mono text-sm">
               {pairs.map((pair, index) => {

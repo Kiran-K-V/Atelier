@@ -9,6 +9,8 @@ import { TIERS } from '../quality'
 import { GhostTrail, LightColumn, Motes, Shards } from './Bursts'
 import { Aura, DustRing, ImpactFlash, RippleRing } from './Decals'
 import { particleScale } from './shaders'
+import { Callout } from './Callout'
+import { TacticFx } from './Tactics'
 import { Slash, ThreatLine, Trail } from './Trails'
 
 interface Live {
@@ -27,6 +29,16 @@ const MAX_LIVE = 48
 const FX_LAYER = 1
 
 type ThreatEvent = Extract<FxEvent, { type: 'threatLine' }>
+
+type TacticEvent = Extract<FxEvent, { type: 'tactic' | 'callout' }>
+
+/** Effects that carry information, so they still show under reduced motion (P7, T7). */
+const INFORMATIVE: ReadonlySet<FxEvent['type']> = new Set(['threatLine', 'tactic', 'callout'])
+
+/** Tactic visuals belong to the latest move; a backlogged plan must not draw an older move's tactic. */
+function tacticCurrent(e: TacticEvent): boolean {
+  return useGame.getState().history.at(-1)?.tactics.includes(e.tactic) ?? false
+}
 
 /** A threat line is valid only while the store still shows that exact check. */
 function threatHolds(e: ThreatEvent): boolean {
@@ -51,8 +63,9 @@ export function FxLayer() {
     () =>
       fxBus.on((event) => {
         if (event.type === 'mood') return
-        if (useSettings.getState().reducedMotion && event.type !== 'threatLine') return
+        if (useSettings.getState().reducedMotion && !INFORMATIVE.has(event.type)) return
         if (event.type === 'threatLine' && !threatHolds(event)) return
+        if ((event.type === 'tactic' || event.type === 'callout') && !tacticCurrent(event)) return
         const item: Live = { key: nextKey.current++, event, startedAt: clock.elapsedTime, ending: false }
         setLive((list) => [...(list.length >= MAX_LIVE ? list.slice(1) : list), item])
       }),
@@ -62,12 +75,11 @@ export function FxLayer() {
   useEffect(
     () =>
       useGame.subscribe((s, prev) => {
-        const moved = s.history.length !== prev.history.length
-        setLive((list) =>
-          list.some((l) => l.event.type === 'threatLine' && !l.ending && (moved || !threatHolds(l.event)))
-            ? list.map((l) => (l.event.type === 'threatLine' && (moved || !threatHolds(l.event)) ? { ...l, ending: true } : l))
-            : list,
-        )
+        const moved = s.history !== prev.history
+        // Check lines end when the check does; tactic lines and labels end with any history change (T8).
+        const ends = (l: Live) =>
+          !l.ending && ((l.event.type === 'threatLine' && (moved || !threatHolds(l.event))) || (moved && (l.event.type === 'tactic' || l.event.type === 'callout')))
+        setLive((list) => (list.some(ends) ? list.map((l) => (ends(l) ? { ...l, ending: true } : l)) : list))
       }),
     [],
   )
@@ -128,5 +140,9 @@ function content(item: Live, density: number, ending: boolean, done: () => void)
       return <Motes event={e} {...common} />
     case 'ghostTrail':
       return <GhostTrail event={e} {...common} />
+    case 'tactic':
+      return <TacticFx event={e} {...common} />
+    case 'callout':
+      return <Callout event={e} {...common} />
   }
 }

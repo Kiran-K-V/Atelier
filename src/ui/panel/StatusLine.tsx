@@ -56,7 +56,7 @@ export function StatusLine() {
   const headline = status.kind === 'playing' ? `${colorName(turn)} to move` : describeStatus(status)
 
   return (
-    <div className="px-4 pb-5 lg:px-6">
+    <div className="min-w-0 flex-1">
       <p className="atelier-display m-0 text-2xl font-normal leading-tight text-text">{headline}</p>
       <p className="m-0 mt-2 flex min-h-5 items-center text-sm text-text-muted">
         <Detail />

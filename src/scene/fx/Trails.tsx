@@ -2,10 +2,10 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useRef } from 'react'
 import * as THREE from 'three'
 import { scene } from '../../design/tokens'
-import type { Square } from '../../rules/types'
 import { useSettings } from '../../store/settings'
 import { squareToPosition } from '../coords'
 import { flatPlane, hdr, particleGeometry, stripGeometry } from './geometry'
+import { boardStrip, point2 } from './strip'
 import { clamp01, easeFn, useLife, useOwned, type FxProps } from './life'
 import { pathPoint, type Point2 } from './path'
 import { particleMaterial, ringMaterial, stripMaterial } from './shaders'
@@ -13,25 +13,6 @@ import { particleMaterial, ringMaterial, stripMaterial } from './shaders'
 const soft = easeFn('soft')
 const enter = easeFn('enter')
 const standard = easeFn('standard')
-
-function point2(square: Square): Point2 {
-  const [x, , z] = squareToPosition(square)
-  return { x, z }
-}
-
-/** Flat ribbon on the board from `a` to `b`, `half` wide each side, with an optional S-sway. */
-function boardStrip(a: Point2, b: Point2, y: number, half: number, sway: number): { geometry: THREE.BufferGeometry; length: number } {
-  const length = Math.hypot(b.x - a.x, b.z - a.z)
-  const nx = -(b.z - a.z) / (length || 1)
-  const nz = (b.x - a.x) / (length || 1)
-  const p = { x: 0, z: 0 }
-  const geometry = stripGeometry(Math.max(8, Math.ceil(length * 18)), (u, center, side) => {
-    pathPoint(a, b, u, sway, p)
-    center.set(p.x, y, p.z)
-    side.set(nx * half, 0, nz * half)
-  })
-  return { geometry, length }
-}
 
 const TRAIL_FADE = 0.5
 const TRAIL_Y = 0.014
