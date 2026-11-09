@@ -1,5 +1,6 @@
 import { Html } from '@react-three/drei'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
+import * as THREE from 'three'
 import { cssBezier } from '../../design/tokens'
 import { TACTIC_LABEL } from '../../rules/tacticNames'
 import { useSettings } from '../../store/settings'
@@ -9,6 +10,9 @@ import type { FxProps } from './life'
 /** Height above the board where the word floats (above the tallest piece). */
 const LIFT = 1.45
 const EXIT_EARLY_MS = 160
+/** Screen margin (px) the label keeps from the canvas edges. */
+const EDGE = 12
+const projected = new THREE.Vector3()
 
 const wrap: CSSProperties = {
   pointerEvents: 'none',
@@ -56,6 +60,19 @@ export function Callout({ event, ending, onDone }: FxProps<'callout'>) {
   const [x, , z] = squareToPosition(event.square)
   const ms = event.duration * 1000
 
+  // Centred over the square, but slid inward so a label over an edge file never clips.
+  const place = useCallback(
+    (obj: THREE.Object3D, camera: THREE.Camera, size: { width: number; height: number }) => {
+      projected.setFromMatrixPosition(obj.matrixWorld).project(camera)
+      const x = (projected.x * 0.5 + 0.5) * size.width
+      const y = (0.5 - projected.y * 0.5) * size.height
+      const hw = Math.min(size.width / 2, (el?.offsetWidth ?? 0) / 2 + EDGE)
+      const hh = Math.min(size.height / 2, (el?.offsetHeight ?? 0) / 2 + EDGE)
+      return [THREE.MathUtils.clamp(x, hw, size.width - hw), THREE.MathUtils.clamp(y, hh, size.height - hh)]
+    },
+    [el],
+  )
+
   useEffect(() => {
     const bar = el?.lastElementChild
     if (!el || !bar) return
@@ -98,7 +115,7 @@ export function Callout({ event, ending, onDone }: FxProps<'callout'>) {
   }, [el, ending, onDone])
 
   return (
-    <Html position={[x, LIFT, z]} center zIndexRange={[9, 0]} pointerEvents="none">
+    <Html position={[x, LIFT, z]} center calculatePosition={place} zIndexRange={[9, 0]} pointerEvents="none">
       <div ref={setEl} style={wrap} aria-hidden="true">
         <div style={word}>{TACTIC_LABEL[event.tactic.kind]}</div>
         <div style={rule} />

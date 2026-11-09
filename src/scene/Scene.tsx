@@ -1,4 +1,4 @@
-import { ContactShadows, Environment, Lightformer, PerformanceMonitor } from '@react-three/drei'
+import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { useSyncExternalStore } from 'react'
 import * as THREE from 'three'
@@ -73,12 +73,9 @@ export default function Scene() {
 
       <Board room={room} />
       <Highlights />
-      <Pieces blobShadows={!tier.contactShadows} />
+      <Pieces blobShadows />
       <Director />
       <FxLayer />
-      {tier.contactShadows && (
-        <ContactShadows position={[0, 0.011, 0]} scale={9} blur={2.2} opacity={0.55} far={1.2} resolution={512} frames={Infinity} />
-      )}
 
       <CameraRig />
 

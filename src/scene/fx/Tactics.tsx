@@ -27,7 +27,7 @@ const REVEAL = 0.8
 /** Time to settle from bright to steady after the reveal. */
 const DIM = 0.7
 /** Steady brightness relative to the reveal. */
-const STEADY = 0.36
+const STEADY = 0.45
 const END_FADE = 0.3
 const END_FADE_REDUCED = 0.12
 /** Non-primary tactics draw at this share of the primary's intensity (T4). */
@@ -147,6 +147,31 @@ function beam(length: number, look: BeamLook): THREE.ShaderMaterial {
   return m
 }
 
+const SHADE = new THREE.Color('#140d05')
+
+/**
+ * Dark, normally blended backing under a glowing line, sharing its geometry. Additive light alone
+ * vanishes on the pale squares; the backing gives it an edge to read against.
+ */
+function shade(length: number, core: number): THREE.ShaderMaterial {
+  const m = stripMaterial()
+  m.blending = THREE.NormalBlending
+  const u = m.uniforms
+  u.uColor.value.copy(SHADE)
+  u.uHeadColor.value.copy(SHADE)
+  u.uLength.value = length
+  u.uCore.value = core
+  u.uHalo.value = 0
+  return m
+}
+
+/** Keeps a backing in step with its line's reveal. */
+function follow(backing: THREE.ShaderMaterial, line: THREE.ShaderMaterial, opacity: number): void {
+  backing.uniforms.uHead.value = line.uniforms.uHead.value
+  backing.uniforms.uBack.value = line.uniforms.uBack?.value ?? -1
+  backing.uniforms.uOpacity.value = opacity
+}
+
 /** Several GPU resources owned as one, for useOwned. */
 function bundle<T extends Record<string, { dispose: () => void } | readonly { dispose: () => void }[]>>(parts: T): T & { dispose: () => void } {
   return {
@@ -201,6 +226,8 @@ function Fork({ t, weight, startedAt, density, ending, onDone }: PartProps<'fork
       trunkMat: beam(trunk.length, { color: LINE, head: HEAD, core: 0.32, halo: 0.32 }),
       branchGeo: branches.map((b) => b.geometry),
       branchMat: branches.map((b) => beam(b.length, { color: LINE, head: HEAD, core: 0.28, halo: 0.3 })),
+      trunkShade: shade(trunk.length, 0.7),
+      branchShade: branches.map((b) => shade(b.length, 0.7)),
       rings: targets.map(() => sigil({ color: hdr(scene.brass, 2.4), radius: 0.4, width: 0.03 })),
       reticles: targets.map(() => sigil({ color: HEAD, radius: 0.31, width: 0.016, segments: 4, gap: 0.55, spin: Math.PI / 4 })),
       splitMat: sigil({ color: HOT, radius: 0.05, width: 0.05, fill: 1 }),
@@ -213,12 +240,14 @@ function Fork({ t, weight, startedAt, density, ending, onDone }: PartProps<'fork
     const tu = r.trunkMat.uniforms
     tu.uHead.value = 1.02 * span(f, 0, Math.max(0.01, trunkTime), enter)
     tu.uOpacity.value = f.level
+    follow(r.trunkShade, r.trunkMat, 0.3 * f.gain)
     const grow = span(f, trunkTime, branchEnd, soft)
-    r.branchMat.forEach((m) => {
+    r.branchMat.forEach((m, i) => {
       m.uniforms.uHead.value = 1.02 * grow
       m.uniforms.uOpacity.value = f.level
       m.uniforms.uFlow.value = f.reduced ? 0 : 0.6
       m.uniforms.uTime.value = f.time
+      follow(r.branchShade[i], m, 0.3 * f.gain)
     })
     const land = span(f, branchEnd - 0.06, branchEnd + 0.2, overshoot)
     r.rings.forEach((m, i) => {
@@ -240,9 +269,13 @@ function Fork({ t, weight, startedAt, density, ending, onDone }: PartProps<'fork
 
   return (
     <group>
+      {trunkLen > 0 && <mesh geometry={r.trunkGeo} material={r.trunkShade} renderOrder={2} />}
       {trunkLen > 0 && <mesh geometry={r.trunkGeo} material={r.trunkMat} renderOrder={4} />}
       {r.branchGeo.map((g, i) => (
-        <mesh key={i} geometry={g} material={r.branchMat[i]} renderOrder={4} />
+        <group key={i}>
+          <mesh geometry={g} material={r.branchShade[i]} renderOrder={2} />
+          <mesh geometry={g} material={r.branchMat[i]} renderOrder={4} />
+        </group>
       ))}
       {targets.map((p, i) => (
         <group key={i} position={at(p, Y_MARK)}>
@@ -262,17 +295,18 @@ function Pin({ t, weight, startedAt, ending, onDone }: PartProps<'pin'>) {
   const pinned = point2(t.pinned)
   const behind = point2(t.behind)
   const r = useOwned(() => {
-    const chain = boardStrip(a, behind, Y_LINE, 0.085, 0)
+    const chain = boardStrip(a, behind, Y_LINE, 0.1, 0)
     const m = chainMaterial()
     const u = m.uniforms
     u.uColor.value.copy(hdr(scene.brass, t.absolute ? 2.5 : 2.1))
     u.uHotColor.value.copy(HOT)
     u.uLength.value = chain.length
-    u.uLinkLen.value = 0.17
-    u.uHalfW.value = 0.085
+    u.uLinkLen.value = 0.2
+    u.uHalfW.value = 0.1
     return bundle({
       chainGeo: chain.geometry,
       chainMat: m,
+      chainShade: shade(chain.length, 0.8),
       lock: sigil({ color: hdr(scene.brass, 2.6), radius: 0.41, width: 0.034, segments: 4, gap: 0.7 }),
       inner: sigil({ color: HEAD, radius: 0.32, width: 0.016 }),
       shield: sigil({ color: hdr(scene.brass, 1.6), radius: 0.36, width: 0.02, segments: t.absolute ? 0 : 6, gap: 0.3 }),
@@ -284,6 +318,7 @@ function Pin({ t, weight, startedAt, ending, onDone }: PartProps<'pin'>) {
     cu.uOpacity.value = f.level
     cu.uTime.value = f.time
     cu.uShimmer.value = f.reduced ? 0 : 1
+    follow(r.chainShade, r.chainMat, 0.35 * f.gain)
     const lock = span(f, 0.38, 0.7, overshoot)
     const lu = r.lock.uniforms
     lu.uGap.value = Math.max(0.06, 0.7 - 0.58 * lock)
@@ -295,6 +330,7 @@ function Pin({ t, weight, startedAt, ending, onDone }: PartProps<'pin'>) {
   })
   return (
     <group>
+      <mesh geometry={r.chainGeo} material={r.chainShade} renderOrder={2} />
       <mesh geometry={r.chainGeo} material={r.chainMat} renderOrder={4} />
       <group position={at(pinned, Y_MARK)}>
         <mesh geometry={flatPlane()} material={r.lock} scale={1.2} renderOrder={3} />
@@ -331,6 +367,7 @@ function Skewer({ t, weight, startedAt, density, ending, onDone }: PartProps<'sk
       highMat: beam(high.length, { color: hdr('#ffd99a', 2.8), head: hdr('#fffaf0', 6), core: 0.3, halo: 0.22 }),
       lowGeo: low.geometry,
       lowMat: beam(low.length, { color: hdr(scene.brass, 1.5), head: HEAD, core: 0.25, halo: 0.25 }),
+      lowShade: shade(low.length, 0.6),
       shell: (() => {
         const m = shellMaterial()
         m.uniforms.uColor.value.copy(HOT)
@@ -351,6 +388,7 @@ function Skewer({ t, weight, startedAt, density, ending, onDone }: PartProps<'sk
     const lu = r.lowMat.uniforms
     lu.uHead.value = head
     lu.uOpacity.value = 0.4 * f.level
+    follow(r.lowShade, r.lowMat, 0.25 * f.gain)
     const su = r.shell.uniforms
     su.uOpacity.value = 0.7 * hit * f.gain
     su.uRise.value = 0.6 + 0.4 * (1 - hit)
@@ -363,6 +401,7 @@ function Skewer({ t, weight, startedAt, density, ending, onDone }: PartProps<'sk
   return (
     <group>
       <mesh geometry={r.highGeo} material={r.highMat} renderOrder={5} />
+      <mesh geometry={r.lowGeo} material={r.lowShade} renderOrder={2} />
       <mesh geometry={r.lowGeo} material={r.lowMat} renderOrder={3} />
       <mesh geometry={shellGeometry()} material={r.shell} position={at(front, 0)} scale={[0.42, 0.8, 0.42]} renderOrder={4} />
       <mesh geometry={flatPlane()} material={r.pierce} position={at(front, Y_MARK)} scale={1.2} renderOrder={3} />
@@ -395,6 +434,7 @@ function Discovered({ t, weight, startedAt, ending, onDone }: PartProps<'discove
     return bundle({
       lineGeo: line.geometry,
       lineMat: beam(line.length, { color: LINE, head: HEAD, core: 0.3, halo: 0.32 }),
+      lineShade: shade(line.length, 0.7),
       curtainGeo: curtainGeometry(a, target),
       curtainMat: (() => {
         const m = beam(len, { color: hdr(scene.brass, 1.4), head: HEAD, core: 0.05, halo: 0.75 })
@@ -416,6 +456,7 @@ function Discovered({ t, weight, startedAt, ending, onDone }: PartProps<'discove
       m.uniforms.uTime.value = f.time
     }
     r.lineMat.uniforms.uOpacity.value = hold
+    follow(r.lineShade, r.lineMat, 0.3 * (t.check ? hold : f.gain))
     r.curtainMat.uniforms.uOpacity.value = f.reduced ? 0 : 0.8 * f.gain * (1 - span(f, 0.45, 1.1, soft))
     r.ghost.uniforms.uSpin.value = f.time * 0.35
     r.ghost.uniforms.uOpacity.value = 0.85 * f.level
@@ -426,6 +467,7 @@ function Discovered({ t, weight, startedAt, ending, onDone }: PartProps<'discove
   })
   return (
     <group>
+      <mesh geometry={r.lineGeo} material={r.lineShade} renderOrder={2} />
       <mesh geometry={r.lineGeo} material={r.lineMat} renderOrder={4} />
       <mesh geometry={r.curtainGeo} material={r.curtainMat} renderOrder={4} />
       <group position={at(vac, Y_MARK)}>
@@ -515,6 +557,11 @@ function BackRank({ t, weight, startedAt, ending, onDone }: PartProps<'backRank'
       bandMat: beam(band.length, { color: hdr(scene.brass, 1.3), head: hdr('#fff1d6', 2.4), core: 0.85, halo: 0.15, dash: 0.8 }),
       entryMat: sigil({ color: hdr(scene.brass, 2.4), radius: 0.43, width: 0.03, square: true }),
       escapes: escapes.map(() => sigil({ color: EMBER, radius: 0.4, width: 0.03, fill: 0.12, square: true })),
+      soot: escapes.map(() => {
+        const m = sigil({ color: new THREE.Color('#2a1608'), radius: 0.36, width: 0.08, fill: 0.5, square: true })
+        m.blending = THREE.NormalBlending
+        return m
+      }),
     })
   })
   useTacticLife(startedAt, ending, weight, onDone, (f) => {
@@ -530,7 +577,9 @@ function BackRank({ t, weight, startedAt, ending, onDone }: PartProps<'backRank'
     const seal = span(f, 0.45, 0.8)
     r.escapes.forEach((m, i) => {
       const breath = f.reduced ? 1 : 0.75 + 0.25 * Math.sin(f.t * 2.4 + i)
-      m.uniforms.uOpacity.value = 0.8 * seal * breath * f.gain * (0.6 + 0.4 * (1 - f.settle))
+      const k = seal * breath * f.gain * (0.6 + 0.4 * (1 - f.settle))
+      m.uniforms.uOpacity.value = 0.8 * k
+      r.soot[i].uniforms.uOpacity.value = 0.35 * k
     })
   })
   return (
@@ -538,7 +587,10 @@ function BackRank({ t, weight, startedAt, ending, onDone }: PartProps<'backRank'
       <mesh geometry={r.bandGeo} material={r.bandMat} renderOrder={3} />
       <mesh geometry={flatPlane()} material={r.entryMat} position={at(entry, Y_MARK + 0.002)} scale={1.2} renderOrder={4} />
       {escapes.map((p, i) => (
-        <mesh key={i} geometry={flatPlane()} material={r.escapes[i]} position={at(p, Y_MARK)} scale={1.2} renderOrder={3} />
+        <group key={i} position={at(p, Y_MARK)}>
+          <mesh geometry={flatPlane()} material={r.soot[i]} scale={1.2} renderOrder={2} />
+          <mesh geometry={flatPlane()} material={r.escapes[i]} scale={1.2} position-y={0.001} renderOrder={3} />
+        </group>
       ))}
     </group>
   )

@@ -9,6 +9,10 @@ import { useSettings } from '../../store/settings'
 import { squareToPosition } from '../coords'
 import { glowTexture, type GlowShape } from '../materials/glow'
 
+const HALO = '#1a1208'
+/** Deeper amber than the token gold: pale gold washes out on white squares. */
+const AMBER = '#d99a1f'
+
 export const noRaycast = () => undefined
 
 interface MarkProps {
@@ -23,10 +27,12 @@ interface MarkProps {
   readonly intensity?: number
   readonly pulse?: boolean
   readonly popIn?: boolean
+  /** Soft dark underlay so the mark reads on pale marble too. */
+  readonly halo?: number
 }
 
-function Mark({ square, shape, color, size, y, opacity, intensity = 1, pulse = false, popIn = true }: MarkProps) {
-  const mesh = useRef<THREE.Mesh>(null)
+function Mark({ square, shape, color, size, y, opacity, intensity = 1, pulse = false, popIn = true, halo = 0 }: MarkProps) {
+  const mesh = useRef<THREE.Group>(null)
   const mat = useRef<THREE.MeshBasicMaterial>(null)
   const reduced = useSettings((s) => s.reducedMotion)
   const tint = useMemo(() => new THREE.Color(color).multiplyScalar(intensity), [color, intensity])
@@ -48,18 +54,26 @@ function Mark({ square, shape, color, size, y, opacity, intensity = 1, pulse = f
   })
 
   return (
-    <mesh ref={mesh} position={position as [number, number, number]} rotation-x={-Math.PI / 2} renderOrder={2} raycast={noRaycast}>
-      <planeGeometry args={[size, size]} />
-      <meshBasicMaterial
-        ref={mat}
-        map={shape === 'fill' ? null : glowTexture(shape)}
-        color={tint}
-        transparent
-        opacity={opacity}
-        depthWrite={false}
-        toneMapped={false}
-      />
-    </mesh>
+    <group ref={mesh} position={position as [number, number, number]} rotation-x={-Math.PI / 2} renderOrder={2}>
+      {halo > 0 && shape !== 'fill' && (
+        <mesh position-z={-0.0004} scale={1.18} renderOrder={2} raycast={noRaycast}>
+          <planeGeometry args={[size, size]} />
+          <meshBasicMaterial map={glowTexture(shape)} color={HALO} transparent opacity={halo} depthWrite={false} toneMapped={false} />
+        </mesh>
+      )}
+      <mesh renderOrder={2} raycast={noRaycast}>
+        <planeGeometry args={[size, size]} />
+        <meshBasicMaterial
+          ref={mat}
+          map={shape === 'fill' ? null : glowTexture(shape)}
+          color={tint}
+          transparent
+          opacity={opacity}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
   )
 }
 
@@ -81,12 +95,12 @@ export function Highlights() {
       {checkSquare && (
         <Mark key={`check-${checkSquare}`} square={checkSquare} shape="blob" color={scene.check} size={1.5} y={0.004} opacity={0.85} intensity={2.2} pulse />
       )}
-      {selected && <Mark key={`sel-${selected}`} square={selected} shape="frame" color={scene.selected} size={1} y={0.005} opacity={0.95} intensity={1.7} />}
+      {selected && <Mark key={`sel-${selected}`} square={selected} shape="frame" color={AMBER} size={1} y={0.005} opacity={1} intensity={1.15} halo={0.5} />}
       {legalTargets.map((sq) =>
         occupied.has(sq) ? (
-          <Mark key={`cap-${sq}`} square={sq} shape="ring" color={scene.legal} size={1} y={0.007} opacity={0.9} intensity={1.6} />
+          <Mark key={`cap-${sq}`} square={sq} shape="ring" color={AMBER} size={1} y={0.007} opacity={1} intensity={1.15} halo={0.5} />
         ) : (
-          <Mark key={`mv-${sq}`} square={sq} shape="disc" color={scene.legal} size={0.34} y={0.007} opacity={0.85} intensity={1.5} />
+          <Mark key={`mv-${sq}`} square={sq} shape="disc" color={AMBER} size={0.34} y={0.007} opacity={1} intensity={1.15} halo={0.55} />
         ),
       )}
       {cursor && <Mark key={`cur-${cursor}`} square={cursor} shape="frame" color={scene.cursor} size={0.96} y={0.009} opacity={0.95} intensity={1.6} />}
