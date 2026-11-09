@@ -1,46 +1,18 @@
 import * as THREE from 'three'
-import { fbm, hash, mix, paint, rgb, smoothstep, texture } from './canvas'
+import { hash, paint, smoothstep, texture } from './canvas'
 
-const SIZE = 512
 const DEEP_SIZE = 512
 
 export interface IceTextures {
-  /** Deep sapphire with soft lighter regions where light enters. No lines. */
-  readonly color: THREE.CanvasTexture
-  /** Very gentle low-frequency waviness so reflections bend like poured resin. */
-  readonly bump: THREE.CanvasTexture
   /**
-   * Interior layers, sampled in world space with a view parallax (see depth.ts). Tileable.
-   * R: a deep cloudy veil. G: tiny bubbles. B: a faint frost veil.
+   * Faint interior of the glass tiles, sampled in world space with a view parallax (see depth.ts).
+   * Tileable. R: a deep cloudy veil. G: tiny bubbles. B: a faint frost veil.
    */
   readonly deep: THREE.CanvasTexture
 }
 
-/** Sapphire glass body: smooth, slow colour drift from near-black navy to a gentle lighter blue. */
 function generate(): IceTextures {
-  const C = paint(SIZE)
-  const B = paint(SIZE)
-  const core = rgb('#040f2a')
-  const mid = rgb('#0b2a62')
-  const lit = rgb('#1f4f9c')
-
-  for (let py = 0; py < SIZE; py++) {
-    for (let px = 0; px < SIZE; px++) {
-      const x = (px / SIZE) * 6
-      const y = (py / SIZE) * 6
-      // Clear, not cloudy: a slow drift only, so the eye reads depth, not a printed pattern.
-      const drift = fbm(x * 0.35 + 8.1, y * 0.35 - 2.4, 2)
-      const glow = smoothstep(0.6, 0.85, fbm(x * 0.3 - 3.3, y * 0.3 + 6.1, 2))
-      const i = (py * SIZE + px) * 4
-      const t = smoothstep(0.3, 0.7, drift)
-      for (let k = 0; k < 3; k++) C.img.data[i + k] = mix(mix(core[k], mid[k], 0.35 + 0.4 * t), lit[k], glow * 0.25)
-      C.img.data[i + 3] = 255
-      B.img.data[i] = B.img.data[i + 1] = B.img.data[i + 2] = 255 * fbm(x * 0.7, y * 0.7, 3)
-      B.img.data[i + 3] = 255
-    }
-  }
-  for (const m of [C, B]) m.ctx.putImageData(m.img, 0, 0)
-  return { color: texture(C.c, true), bump: texture(B.c, false), deep: generateDeep() }
+  return { deep: generateDeep() }
 }
 
 /** Value noise whose lattice wraps every `period` cells, so the image tiles. */

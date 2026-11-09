@@ -20,7 +20,7 @@ const SHADER = {
     tDiffuse: { value: null },
     textureMatrix: { value: null },
     tMask: { value: null },
-    uStrength: { value: 0.55 },
+    uStrength: { value: 0.22 },
     uTexel: { value: new THREE.Vector2(1 / 512, 1 / 512) },
   },
   vertexShader: /* glsl */ `

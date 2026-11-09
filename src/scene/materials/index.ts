@@ -9,6 +9,9 @@ import { iceTextures } from './ice'
 import { marbleTextures } from './marble'
 import { snowTextures } from './snow'
 
+/** Glacier tiles are blocks this deep (top at y = 0), sitting on a lit tray floor inside the frame. */
+export const TRAY_DEPTH = 0.33
+
 export interface SceneMaterials {
   readonly squareLight: THREE.MeshPhysicalMaterial
   readonly squareDark: THREE.MeshPhysicalMaterial
@@ -45,6 +48,9 @@ interface SetSpec {
  */
 const PHYSICAL_DEFAULTS: Physical = {
   color: '#ffffff',
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
   map: null,
   roughness: 1,
   roughnessMap: null,
@@ -146,16 +152,29 @@ function glacier(transmission: boolean): SetSpec {
         sheenRoughness: 0.45,
         sheenColor: '#e6f2ff',
       },
-      // Sapphire glass: smooth, mirror-glossy coat; depth comes from the parallax interior (depth.ts).
-      squareDark: {
-        map: ice.color,
-        roughness: 0.08,
-        bumpMap: ice.bump,
-        bumpScale: 0.6,
-        clearcoat: 1,
-        clearcoatRoughness: 0.01,
-        specularIntensity: 1,
-      },
+      // Sapphire glass blocks: real transmission down to the tray floor, darkening with depth.
+      // Low tier: alpha transparency instead, so the snow walls and floor still show through.
+      squareDark: transmission
+        ? {
+            color: '#d8e6ff',
+            roughness: 0.03,
+            transmission: 1,
+            thickness: TRAY_DEPTH,
+            ior: 1.5,
+            attenuationColor: '#1a4cc0',
+            attenuationDistance: 0.55,
+            clearcoat: 1,
+            clearcoatRoughness: 0.01,
+          }
+        : {
+            color: '#123a8a',
+            roughness: 0.05,
+            clearcoat: 1,
+            clearcoatRoughness: 0.01,
+            transparent: true,
+            opacity: 0.55,
+            depthWrite: false,
+          },
       // Thick teal glass: refracts the board edge and the lit table below; glossy teal on low tier.
       frame: transmission
         ? {
@@ -176,12 +195,12 @@ function glacier(transmission: boolean): SetSpec {
             sheenColor: '#46d6f2',
           }
         : {
-            color: c.frame,
+            color: '#06324c',
             roughness: 0.08,
             clearcoat: 1,
             clearcoatRoughness: 0.02,
             emissive: '#05324a',
-            emissiveIntensity: 0.4,
+            emissiveIntensity: 0.3,
             sheen: 0.3,
             sheenRoughness: 0.3,
             sheenColor: '#46d6f2',

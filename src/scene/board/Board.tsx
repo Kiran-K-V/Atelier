@@ -9,10 +9,11 @@ import { fxBus } from '../choreo/bus'
 import { ALL_SQUARES, isLightSquare, positionToSquare, squareToPosition } from '../coords'
 import { hover } from '../interaction/state'
 import { useLook } from '../look'
-import { linkMaterial, materials } from '../materials'
+import { linkMaterial, materials, TRAY_DEPTH } from '../materials'
 import { withDepth } from '../materials/depth'
 import { GlassReflection } from './Reflection'
 import { mulberry32 } from '../materials/marble'
+import { snowTextures } from '../materials/snow'
 import { RIPPLE } from './ripple'
 import { rippleUniforms, withRipple } from './rippleMaterial'
 
@@ -25,13 +26,16 @@ const INLAY = [4.17, 4.2] as const
 const LABEL_BAND = [4.22, 4.75] as const
 export const TABLE_Y = FRAME_TOP - FRAME_DEPTH - 2 * FRAME_BEVEL
 
-/** Each square samples its own rotated window of the marble, so no two squares repeat. */
-function squaresGeometry(light: boolean): THREE.BufferGeometry {
+/**
+ * Each square samples its own rotated window of its texture, so no two squares repeat. Tiles are
+ * 0.04 slabs (atelier) or full-depth blocks down to the tray floor (glacier), top face at y = 0.
+ */
+function squaresGeometry(light: boolean, height = 0.04): THREE.BufferGeometry {
   const rand = mulberry32(light ? 7 : 13)
   const parts = ALL_SQUARES.filter((sq) => isLightSquare(sq) === light).map((sq) => {
-    const g = new THREE.BoxGeometry(0.994, 0.04, 0.994)
+    const g = new THREE.BoxGeometry(0.994, height, 0.994)
     const [x, , z] = squareToPosition(sq)
-    g.translate(x, -0.02, z)
+    g.translate(x, -height / 2, z)
     const center = new Float32Array(g.getAttribute('position').count * 2)
     for (let i = 0; i < center.length; i += 2) {
       center[i] = x
@@ -219,11 +223,16 @@ function useLabelTexture(): THREE.CanvasTexture {
 }
 
 const geometries = (() => {
-  let built: Record<'light' | 'dark' | 'frame' | 'iceFrame' | 'underGlow' | 'inlay' | 'labels', THREE.BufferGeometry> | null = null
+  let built: Record<
+    'light' | 'dark' | 'lightBlock' | 'darkBlock' | 'frame' | 'iceFrame' | 'underGlow' | 'inlay' | 'labels',
+    THREE.BufferGeometry
+  > | null = null
   return () =>
     (built ??= {
       light: squaresGeometry(true),
       dark: squaresGeometry(false),
+      lightBlock: squaresGeometry(true, TRAY_DEPTH),
+      darkBlock: squaresGeometry(false, TRAY_DEPTH),
       frame: frameGeometry(),
       iceFrame: iceFrameGeometry(),
       underGlow: flat(new THREE.ShapeGeometry(ring(FRAME_OUTER - 0.15, FRAME_INNER + 0.05)), TABLE_Y + 0.005),
@@ -288,6 +297,17 @@ function useFloorGlow(): THREE.CanvasTexture {
   return texture
 }
 
+/** Floor of the glacier tray, seen through the glass tiles: pale packed snow, no line pattern. */
+function useTrayFloorTexture(): THREE.Texture {
+  return useMemo(() => {
+    const t = snowTextures().color.clone()
+    t.wrapS = t.wrapT = THREE.RepeatWrapping
+    t.repeat.set(3, 3)
+    t.needsUpdate = true
+    return t
+  }, [])
+}
+
 function onSquareMove(e: ThreeEvent<PointerEvent>) {
   hover(positionToSquare(e.point.x, e.point.z))
 }
@@ -307,17 +327,27 @@ export function Board({ room, dark }: { room: string; dark: boolean }) {
   const set = useSettings((s) => s.boardSet)
   const reflection = REFLECTION[useSettings((s) => s.quality)]
   const floorGlow = useFloorGlow()
+  const trayFloor = useTrayFloorTexture()
+  const tray = set === 'glacier'
   const navyFloor = set === 'glacier' && dark
   useBoardRipple()
 
   return (
     <group>
-      <mesh geometry={g.light} material={squares.light} receiveShadow />
-      <mesh geometry={g.dark} material={squares.dark} receiveShadow />
-      {/* Grout bed: shows as fine dark seams between squares. */}
-      <mesh position={[0, -0.03, 0]} material={m.frame}>
-        <boxGeometry args={[8.1, 0.05, 8.1]} />
-      </mesh>
+      <mesh geometry={tray ? g.lightBlock : g.light} material={squares.light} receiveShadow />
+      <mesh geometry={tray ? g.darkBlock : g.dark} material={squares.dark} receiveShadow />
+      {tray ? (
+        // Tray floor under the blocks: what the glass tiles look down onto.
+        <mesh position={[0, -TRAY_DEPTH + 0.002, 0]} rotation-x={-Math.PI / 2} raycast={() => undefined}>
+          <planeGeometry args={[8.14, 8.14]} />
+          <meshBasicMaterial color="#b4d8f2" map={trayFloor} />
+        </mesh>
+      ) : (
+        // Grout bed: shows as fine dark seams between squares.
+        <mesh position={[0, -0.03, 0]} material={m.frame}>
+          <boxGeometry args={[8.1, 0.05, 8.1]} />
+        </mesh>
+      )}
       <mesh geometry={set === 'glacier' ? g.iceFrame : g.frame} material={m.frame} castShadow receiveShadow />
       {set === 'glacier' && (
         <>
