@@ -1,0 +1,26 @@
+/* A user who forces reduced motion on must also stop CSS transitions and keyframes.
+   The OS-level rule in index.css only covers the media query. */
+html[data-motion='reduce'] *,
+html[data-motion='reduce'] *::before,
+html[data-motion='reduce'] *::after {
+  animation-duration: 1ms !important;
+  transition-duration: 1ms !important;
+}
+
+.atelier-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.02em;
+}
+
+/* Fraunces gets high contrast at large optical sizes; the wordmark leans into that. */
+.atelier-wordmark {
+  font-family: var(--font-display);
+  font-variation-settings: 'opsz' 144;
+  letter-spacing: -0.035em;
+}
+
+.atelier-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
