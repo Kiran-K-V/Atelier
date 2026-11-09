@@ -58,7 +58,7 @@ export const useSettings = create<SettingsState & SettingsActions>()(
     (set) => ({
       theme: 'system',
       quality: 'high',
-      qualityAuto: true,
+      qualityAuto: false,
       reducedMotion: systemPrefersReducedMotion(),
       reducedMotionUser: null,
       sound: true,

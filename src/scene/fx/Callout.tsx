@@ -1,10 +1,10 @@
 import { Html } from '@react-three/drei'
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { cssBezier } from '../../design/tokens'
 import { TACTIC_LABEL } from '../../rules/tacticNames'
 import { useSettings } from '../../store/settings'
 import { squareToPosition } from '../coords'
-import { useLife, type FxProps } from './life'
+import type { FxProps } from './life'
 
 /** Height above the board where the word floats (above the tallest piece). */
 const LIFT = 1.45
@@ -49,18 +49,15 @@ const rule: CSSProperties = {
  * The tactic's name over its anchor square. DOM, not geometry, so the display face stays crisp and
  * follows the theme. Hidden from assistive tech: the Announcer already speaks it.
  */
-export function Callout({ event, startedAt, ending, onDone }: FxProps<'callout'>) {
+export function Callout({ event, ending, onDone }: FxProps<'callout'>) {
   const reduced = useSettings((s) => s.reducedMotion)
-  const box = useRef<HTMLDivElement>(null)
-  const line = useRef<HTMLDivElement>(null)
+  // Html renders its children in a separate React root, so the node arrives through a callback ref.
+  const [el, setEl] = useState<HTMLDivElement | null>(null)
   const [x, , z] = squareToPosition(event.square)
   const ms = event.duration * 1000
 
-  useLife(startedAt, event.duration, onDone, () => {})
-
   useEffect(() => {
-    const el = box.current
-    const bar = line.current
+    const bar = el?.lastElementChild
     if (!el || !bar) return
     const opts = { duration: ms, fill: 'forwards' as const }
     const anims = reduced
@@ -85,24 +82,26 @@ export function Callout({ event, startedAt, ending, onDone }: FxProps<'callout'>
             opts,
           ),
         ]
+    // The animation is the clock: the label lives exactly as long as it is on screen.
+    anims[0].onfinish = onDone
     return () => anims.forEach((a) => a.cancel())
-  }, [ms, reduced])
+  }, [el, ms, reduced, onDone])
 
   // A new move clears the stage: leave quickly instead of finishing the hold.
   useEffect(() => {
-    const el = box.current
-    if (!ending || !el) return
+    if (!ending) return
+    if (!el) return onDone()
     const from = getComputedStyle(el).opacity
     el.getAnimations().forEach((a) => a.pause())
     const a = el.animate([{ opacity: from }, { opacity: 0 }], { duration: EXIT_EARLY_MS, easing: cssBezier('exit'), fill: 'forwards' })
     a.onfinish = onDone
-  }, [ending, onDone])
+  }, [el, ending, onDone])
 
   return (
     <Html position={[x, LIFT, z]} center zIndexRange={[9, 0]} pointerEvents="none">
-      <div ref={box} style={wrap} aria-hidden="true">
+      <div ref={setEl} style={wrap} aria-hidden="true">
         <div style={word}>{TACTIC_LABEL[event.tactic.kind]}</div>
-        <div ref={line} style={rule} />
+        <div style={rule} />
       </div>
     </Html>
   )
