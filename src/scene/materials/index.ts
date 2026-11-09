@@ -3,11 +3,8 @@ import { sceneSets, type BoardSet } from '../../design/tokens'
 import type { Color } from '../../rules/types'
 import { useSettings } from '../../store/settings'
 import { TIERS } from '../quality'
-import { depthUniforms } from './depth'
 import { withGrain, type GrainUniforms } from './grain'
-import { iceTextures } from './ice'
 import { marbleTextures } from './marble'
-import { snowTextures } from './snow'
 
 /** Glacier tiles are blocks this deep (top at y = 0), sitting on a lit tray floor inside the frame. */
 export const TRAY_DEPTH = 0.33
@@ -38,8 +35,6 @@ interface SetSpec {
   readonly physical: Record<PhysicalKey, Physical>
   readonly standard: Record<StandardKey, Standard>
   readonly grain: Record<'pieceLight' | 'pieceDark', Grain>
-  /** Parallax fracture layers inside the dark squares (depth.ts); null leaves them off. */
-  readonly depth: { readonly strength: number; readonly map: THREE.Texture } | null
 }
 
 /**
@@ -124,55 +119,50 @@ function atelier(): SetSpec {
       slit: { color: '#0b0908', roughness: 0.7 },
     },
     grain: { pieceLight: NO_GRAIN, pieceDark: NO_GRAIN },
-    depth: null,
   }
 }
 
 /**
- * Snow and deep ocean: frosted glittering snow squares, sapphire resin squares with frozen
- * crystal fractures, a deep teal glass frame, frosted crystal white pieces and navy glass dark
+ * Frosted glass and calm sapphire: frosted glass light squares, clear blue glass blocks with
+ * trapped ice, a deep teal glass frame, frosted crystal white pieces and navy glass dark
  * pieces. Transmission (a second render pass) only where the tier allows it; otherwise glossy
  * opaque stand-ins with a cyan sheen rim so they still read as deep, never flat.
  */
 function glacier(transmission: boolean): SetSpec {
   const c = sceneSets.glacier
-  const snow = snowTextures()
-  const ice = iceTextures()
   return {
     physical: {
+      // Frosted glass: smooth, softly diffuse, faint cool tint. Opaque, so it costs no extra pass.
       squareLight: {
-        map: snow.color,
-        roughnessMap: snow.roughness,
-        roughness: 1,
-        bumpMap: snow.bump,
-        bumpScale: 6,
-        clearcoat: 0.12,
-        clearcoatRoughness: 0.5,
-        sheen: 0.35,
-        sheenRoughness: 0.45,
-        sheenColor: '#e6f2ff',
+        color: '#d4dee7',
+        roughness: 0.42,
+        clearcoat: 0.7,
+        clearcoatRoughness: 0.3,
+        sheen: 0.2,
+        sheenRoughness: 0.5,
+        sheenColor: '#eef5ff',
       },
       // Sapphire glass blocks: real transmission down to the tray floor, darkening with depth.
-      // Low tier: alpha transparency instead, so the snow walls and floor still show through.
+      // Low tier: alpha transparency instead, so the trapped ice and floor still show through.
       squareDark: transmission
         ? {
-            color: '#d8e6ff',
+            color: '#eef4fb',
             roughness: 0.03,
             transmission: 1,
             thickness: TRAY_DEPTH,
             ior: 1.5,
-            attenuationColor: '#1a4cc0',
-            attenuationDistance: 0.55,
+            attenuationColor: '#4a78b4',
+            attenuationDistance: 1.1,
             clearcoat: 1,
             clearcoatRoughness: 0.01,
           }
         : {
-            color: '#123a8a',
+            color: '#3b6796',
             roughness: 0.05,
             clearcoat: 1,
             clearcoatRoughness: 0.01,
             transparent: true,
-            opacity: 0.55,
+            opacity: 0.42,
             depthWrite: false,
           },
       // Thick teal glass: refracts the board edge and the lit table below; glossy teal on low tier.
@@ -271,10 +261,9 @@ function glacier(transmission: boolean): SetSpec {
       slit: { color: '#04283f', roughness: 0.5 },
     },
     grain: {
-      pieceLight: { grain: 0.3, sparkle: 0.08, scale: 260 },
+      pieceLight: { grain: 0.12, sparkle: 0, scale: 260 },
       pieceDark: NO_GRAIN,
     },
-    depth: { strength: 1, map: ice.deep },
   }
 }
 
@@ -297,8 +286,6 @@ function apply(store: Store, set: BoardSet, transmission: boolean): void {
     store.mats[key].setValues({ ...STANDARD_DEFAULTS, ...spec.standard[key] })
     store.mats[key].needsUpdate = true
   }
-  depthUniforms.uDepth.value = spec.depth?.strength ?? 0
-  if (spec.depth) depthUniforms.uDeepMap.value = spec.depth.map
   for (const key of ['pieceLight', 'pieceDark'] as const) {
     const g = spec.grain[key]
     store.grain[key].uGrain.value = g.grain

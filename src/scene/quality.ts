@@ -15,14 +15,12 @@ export interface TierConfig {
   readonly dof: boolean
   /** Refractive glass (MeshPhysicalMaterial transmission): costs an extra scene pass. */
   readonly transmission: boolean
-  /** Ambient snowfall flakes in the glacier set; 0 turns it off. */
-  readonly snow: number
 }
 
 export const TIERS: Record<QualityTier, TierConfig> = {
-  high: { dpr: [1, 2], shadowMapSize: 2048, post: true, smaa: true, envResolution: 256, contactShadows: true, fxDensity: 1, dof: true, transmission: true, snow: 1 },
-  medium: { dpr: [1, 1.5], shadowMapSize: 1024, post: true, smaa: false, envResolution: 128, contactShadows: true, fxDensity: 1, dof: false, transmission: true, snow: 0.6 },
-  low: { dpr: [1, 1], shadowMapSize: 0, post: false, smaa: false, envResolution: 64, contactShadows: false, fxDensity: 0.5, dof: false, transmission: false, snow: 0 },
+  high: { dpr: [1, 2], shadowMapSize: 2048, post: true, smaa: true, envResolution: 256, contactShadows: true, fxDensity: 1, dof: true, transmission: true },
+  medium: { dpr: [1, 1.5], shadowMapSize: 1024, post: true, smaa: false, envResolution: 128, contactShadows: true, fxDensity: 1, dof: false, transmission: true },
+  low: { dpr: [1, 1], shadowMapSize: 0, post: false, smaa: false, envResolution: 64, contactShadows: false, fxDensity: 0.5, dof: false, transmission: false },
 }
 
 const ORDER: readonly QualityTier[] = ['low', 'medium', 'high']

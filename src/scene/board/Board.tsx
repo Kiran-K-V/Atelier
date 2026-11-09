@@ -4,17 +4,14 @@ import * as THREE from 'three'
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { useGame } from '../../store/game'
 import { useSettings } from '../../store/settings'
-import type { QualityTier } from '../../store/types'
 import { fxBus } from '../choreo/bus'
 import { ALL_SQUARES, isLightSquare, positionToSquare, squareToPosition } from '../coords'
 import { hover } from '../interaction/state'
 import { useLook } from '../look'
 import { linkMaterial, materials, TRAY_DEPTH } from '../materials'
-import { withDepth } from '../materials/depth'
-import { GlassReflection } from './Reflection'
 import { mulberry32 } from '../materials/marble'
-import { snowTextures } from '../materials/snow'
 import { RIPPLE } from './ripple'
+import { TrappedIce } from './TrappedIce'
 import { rippleUniforms, withRipple } from './rippleMaterial'
 
 export const FRAME_TOP = 0.07
@@ -246,7 +243,7 @@ const rippleMaterials = (() => {
   return () =>
     (built ??= {
       light: linkMaterial('squareLight', withRipple(materials().squareLight)),
-      dark: linkMaterial('squareDark', withDepth(withRipple(materials().squareDark))),
+      dark: linkMaterial('squareDark', withRipple(materials().squareDark)),
     })
 })()
 
@@ -265,13 +262,6 @@ function useBoardRipple(): void {
   useFrame(({ clock: c }) => {
     rippleUniforms.uRippleTime.value = c.elapsedTime
   })
-}
-
-/** Planar reflection per tier (an extra scene render, refreshed every `interval` frames); null is off. */
-const REFLECTION: Record<QualityTier, { resolution: number; interval: number } | null> = {
-  high: { resolution: 512, interval: 2 },
-  medium: { resolution: 256, interval: 3 },
-  low: null,
 }
 
 /** Soft radial glow for the glacier floor: lighter navy under the board, falling off to the room. */
@@ -297,16 +287,6 @@ function useFloorGlow(): THREE.CanvasTexture {
   return texture
 }
 
-/** Floor of the glacier tray, seen through the glass tiles: pale packed snow, no line pattern. */
-function useTrayFloorTexture(): THREE.Texture {
-  return useMemo(() => {
-    const t = snowTextures().color.clone()
-    t.wrapS = t.wrapT = THREE.RepeatWrapping
-    t.repeat.set(3, 3)
-    t.needsUpdate = true
-    return t
-  }, [])
-}
 
 function onSquareMove(e: ThreeEvent<PointerEvent>) {
   hover(positionToSquare(e.point.x, e.point.z))
@@ -325,9 +305,7 @@ export function Board({ room, dark }: { room: string; dark: boolean }) {
   const labels = useLabelTexture()
   const look = useLook()
   const set = useSettings((s) => s.boardSet)
-  const reflection = REFLECTION[useSettings((s) => s.quality)]
   const floorGlow = useFloorGlow()
-  const trayFloor = useTrayFloorTexture()
   const tray = set === 'glacier'
   const navyFloor = set === 'glacier' && dark
   useBoardRipple()
@@ -337,11 +315,14 @@ export function Board({ room, dark }: { room: string; dark: boolean }) {
       <mesh geometry={tray ? g.lightBlock : g.light} material={squares.light} receiveShadow />
       <mesh geometry={tray ? g.darkBlock : g.dark} material={squares.dark} receiveShadow />
       {tray ? (
-        // Tray floor under the blocks: what the glass tiles look down onto.
-        <mesh position={[0, -TRAY_DEPTH + 0.002, 0]} rotation-x={-Math.PI / 2} raycast={() => undefined}>
-          <planeGeometry args={[8.14, 8.14]} />
-          <meshBasicMaterial color="#b4d8f2" map={trayFloor} />
-        </mesh>
+        <>
+          {/* Tray floor under the blocks: what the glass tiles look down onto. */}
+          <mesh position={[0, -TRAY_DEPTH + 0.002, 0]} rotation-x={-Math.PI / 2} raycast={() => undefined}>
+            <planeGeometry args={[8.14, 8.14]} />
+            <meshBasicMaterial color="#163a63" />
+          </mesh>
+          <TrappedIce />
+        </>
       ) : (
         // Grout bed: shows as fine dark seams between squares.
         <mesh position={[0, -0.03, 0]} material={m.frame}>
@@ -355,7 +336,6 @@ export function Board({ room, dark }: { room: string; dark: boolean }) {
           <mesh geometry={g.underGlow} raycast={() => undefined}>
             <meshBasicMaterial color="#0f86b0" toneMapped={false} />
           </mesh>
-          {reflection && <GlassReflection {...reflection} />}
         </>
       )}
       <mesh geometry={g.inlay} material={m.brass} receiveShadow />

@@ -10,7 +10,6 @@ import { CAMERA_FOV, CameraRig } from './CameraRig'
 import { Director } from './choreo/Director'
 import { Effects } from './Effects'
 import { FxLayer } from './fx/FxLayer'
-import { Snowfall } from './fx/Snowfall'
 import { useLook } from './look'
 import { MoodRig } from './fx/MoodRig'
 import { Pieces } from './pieces/Pieces'
@@ -107,7 +106,6 @@ export default function Scene() {
       <Pieces blobShadows />
       <Director />
       <FxLayer />
-      {set === 'glacier' && tier.snow > 0 && <Snowfall density={tier.snow} />}
 
       <CameraRig />
 
