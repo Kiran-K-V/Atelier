@@ -17,12 +17,12 @@ const stored = () => JSON.parse(data.get(KEY) ?? '{}').state
 
 beforeEach(() => {
   data.clear()
-  useSettings.setState({ boardSet: 'glacier' })
+  useSettings.setState({ boardSet: 'wood' })
 })
 
 describe('settings store: boardSet', () => {
-  it('defaults to glacier', () => {
-    expect(useSettings.getState().boardSet).toBe('glacier')
+  it('defaults to wood', () => {
+    expect(useSettings.getState().boardSet).toBe('wood')
   })
 
   it('persists a change', () => {
@@ -39,7 +39,7 @@ describe('settings store: boardSet', () => {
   it('rejects an invalid stored value and keeps the default', async () => {
     data.set(KEY, JSON.stringify({ state: { boardSet: 'neon', theme: 'dark' }, version: 0 }))
     await useSettings.persist.rehydrate()
-    expect(useSettings.getState().boardSet).toBe('glacier')
+    expect(useSettings.getState().boardSet).toBe('wood')
     expect(useSettings.getState().theme).toBe('dark')
   })
 })

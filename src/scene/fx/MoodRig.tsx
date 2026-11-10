@@ -11,7 +11,7 @@ import { useLook } from '../look'
 import { moodWeights, useMood } from './mood'
 
 /** Key and ambient per set: glacier wants harder contrast so its glass and resin read as volume. */
-const LIGHT = { atelier: { key: 1.6, ambient: 0.15 }, glacier: { key: 2.1, ambient: 0.06 } } as const
+const LIGHT = { wood: { key: 1.8, ambient: 0.12 }, atelier: { key: 1.6, ambient: 0.15 }, glacier: { key: 2.1, ambient: 0.06 } } as const
 const PULSE = 1.1
 
 interface MoodRigProps {

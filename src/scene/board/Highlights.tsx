@@ -10,8 +10,8 @@ import { useLook } from '../look'
 import { glowTexture, type GlowShape } from '../materials/glow'
 
 /** Soft dark underlay per set, so marks read on pale squares too. Cyan on snow needs a firmer one. */
-const HALO = { atelier: '#1a1208', glacier: '#010a1a' } as const
-const HALO_GAIN = { atelier: 1, glacier: 1.6 } as const
+const HALO = { wood: '#1a0d04', atelier: '#1a1208', glacier: '#010a1a' } as const
+const HALO_GAIN = { wood: 1, atelier: 1, glacier: 1.6 } as const
 
 export const noRaycast = () => undefined
 

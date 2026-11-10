@@ -35,7 +35,7 @@ export const useSettings = create<SettingsState & SettingsActions>()(
   persist(
     (set) => ({
       theme: 'system',
-      boardSet: 'glacier',
+      boardSet: 'wood',
       quality: 'high',
       qualityAuto: false,
       reducedMotion: systemPrefersReducedMotion(),

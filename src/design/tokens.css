@@ -50,7 +50,93 @@
   --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-:root:not([data-set='atelier']) {
+:root:not([data-set='glacier']):not([data-set='atelier']) {
+  color-scheme: dark;
+  --c-bg: #120b07;
+  --c-surface: #1c120c;
+  --c-surface2: #261910;
+  --c-surface3: #322214;
+  --c-line: rgba(245, 225, 195, 0.10);
+  --c-line-strong: rgba(245, 225, 195, 0.22);
+  --c-text: #f1e6d4;
+  --c-text-muted: #b0a08a;
+  --c-text-faint: #7a6a56;
+  --c-accent: #d49a4a;
+  --c-accent-strong: #efbf74;
+  --c-accent-ink: #1c1006;
+  --c-danger: #e0614e;
+  --c-success: #86b57a;
+  --c-focus: #efbf74;
+  --c-glow-rgb: 201, 163, 91;
+  --c-shadow-rgb: 0, 0, 0;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-set='glacier']):not([data-set='atelier']):not([data-theme='dark']) {
+    color-scheme: light;
+  --c-bg: #f3ebdf;
+    --c-surface: #fbf6ee;
+    --c-surface2: #efe4d3;
+    --c-surface3: #e4d5bd;
+    --c-line: rgba(40, 24, 10, 0.12);
+    --c-line-strong: rgba(40, 24, 10, 0.24);
+    --c-text: #25170b;
+    --c-text-muted: #6f5d48;
+    --c-text-faint: #9d8b73;
+    --c-accent: #9a5f1f;
+    --c-accent-strong: #7a4713;
+    --c-accent-ink: #fbf3e6;
+    --c-danger: #b8412f;
+    --c-success: #3e7a4e;
+    --c-focus: #9a5f1f;
+    --c-glow-rgb: 201, 163, 91;
+    --c-shadow-rgb: 0, 0, 0;
+  }
+}
+
+:root:not([data-set='glacier']):not([data-set='atelier'])[data-theme='light'] {
+  color-scheme: light;
+  --c-bg: #f3ebdf;
+  --c-surface: #fbf6ee;
+  --c-surface2: #efe4d3;
+  --c-surface3: #e4d5bd;
+  --c-line: rgba(40, 24, 10, 0.12);
+  --c-line-strong: rgba(40, 24, 10, 0.24);
+  --c-text: #25170b;
+  --c-text-muted: #6f5d48;
+  --c-text-faint: #9d8b73;
+  --c-accent: #9a5f1f;
+  --c-accent-strong: #7a4713;
+  --c-accent-ink: #fbf3e6;
+  --c-danger: #b8412f;
+  --c-success: #3e7a4e;
+  --c-focus: #9a5f1f;
+  --c-glow-rgb: 201, 163, 91;
+  --c-shadow-rgb: 0, 0, 0;
+}
+
+:root:not([data-set='glacier']):not([data-set='atelier'])[data-theme='dark'] {
+  color-scheme: dark;
+  --c-bg: #120b07;
+  --c-surface: #1c120c;
+  --c-surface2: #261910;
+  --c-surface3: #322214;
+  --c-line: rgba(245, 225, 195, 0.10);
+  --c-line-strong: rgba(245, 225, 195, 0.22);
+  --c-text: #f1e6d4;
+  --c-text-muted: #b0a08a;
+  --c-text-faint: #7a6a56;
+  --c-accent: #d49a4a;
+  --c-accent-strong: #efbf74;
+  --c-accent-ink: #1c1006;
+  --c-danger: #e0614e;
+  --c-success: #86b57a;
+  --c-focus: #efbf74;
+  --c-glow-rgb: 201, 163, 91;
+  --c-shadow-rgb: 0, 0, 0;
+}
+
+:root[data-set='glacier'] {
   color-scheme: dark;
   --c-bg: #050e16;
   --c-surface: rgba(9, 26, 38, 0.78);
@@ -76,7 +162,7 @@
 }
 
 @media (prefers-color-scheme: light) {
-  :root:not([data-set='atelier']):not([data-theme='dark']) {
+  :root[data-set='glacier']:not([data-theme='dark']) {
     color-scheme: light;
   --c-bg: #e9f0f3;
     --c-surface: rgba(255, 255, 255, 0.74);
@@ -102,7 +188,7 @@
   }
 }
 
-:root:not([data-set='atelier'])[data-theme='light'] {
+:root[data-set='glacier'][data-theme='light'] {
   color-scheme: light;
   --c-bg: #e9f0f3;
   --c-surface: rgba(255, 255, 255, 0.74);
@@ -127,7 +213,7 @@
   --c-page-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.45 0 0 0 0 0.6 0 0 0 8 -5.95'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='0.3'/%3E%3C/svg%3E"), radial-gradient(1.5px 1.5px at 22% 31%, rgba(255,255,255,0.8), transparent) 0 0 / 190px 230px, radial-gradient(1px 1px at 71% 62%, rgba(255,255,255,0.6000000000000001), transparent) 0 0 / 130px 150px, radial-gradient(120% 70% at 10% -12%, rgba(255, 255, 255, 0.95), transparent 62%), radial-gradient(90% 60% at 100% 105%, rgba(150, 205, 226, 0.1), transparent 66%), linear-gradient(165deg, #f4fbfe 0%, #e0eff5 50%, #d3e8f1 100%);
 }
 
-:root:not([data-set='atelier'])[data-theme='dark'] {
+:root[data-set='glacier'][data-theme='dark'] {
   color-scheme: dark;
   --c-bg: #050e16;
   --c-surface: rgba(9, 26, 38, 0.78);

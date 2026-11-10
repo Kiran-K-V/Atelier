@@ -6,6 +6,7 @@ import { TIERS } from '../quality'
 import { frostTextures } from './frost'
 import { withGrain, type GrainUniforms } from './grain'
 import { marbleTextures } from './marble'
+import { woodTextures } from './wood'
 
 /** Glacier tiles are blocks this deep (top at y = 0), sitting on a lit tray floor inside the frame. */
 export const TRAY_DEPTH = 0.33
@@ -123,6 +124,55 @@ function atelier(): SetSpec {
   }
 }
 
+/** Satin-finished maple and walnut squares in a dark walnut frame, boxwood and ebonised pieces, brass trim. */
+function wood(): SetSpec {
+  const c = sceneSets.wood
+  const tex = woodTextures()
+  const satin = (map: THREE.Texture): Physical => ({
+    map,
+    roughnessMap: tex.roughness,
+    roughness: 1,
+    clearcoat: 0.4,
+    clearcoatRoughness: 0.28,
+    envMapIntensity: 0.8,
+  })
+  return {
+    physical: {
+      squareLight: satin(tex.light),
+      squareDark: satin(tex.dark),
+      frame: { color: c.frame, roughness: 0.38, clearcoat: 0.8, clearcoatRoughness: 0.12 },
+      brass: { color: c.brass, metalness: 1, roughness: 0.3, clearcoat: 0.3, clearcoatRoughness: 0.2 },
+      // Boxwood: pale honey, waxed rather than lacquered.
+      pieceLight: {
+        color: c.pieceLight,
+        roughness: 0.46,
+        clearcoat: 0.35,
+        clearcoatRoughness: 0.3,
+        sheen: 0.3,
+        sheenRoughness: 0.6,
+        sheenColor: '#ffe2b0',
+        emissive: '#3a2410',
+        emissiveIntensity: 0.1,
+      },
+      // Ebonised rosewood: deep brown-black with a polished coat.
+      pieceDark: {
+        color: c.pieceDark,
+        roughness: 0.4,
+        clearcoat: 0.9,
+        clearcoatRoughness: 0.08,
+        sheen: 0.15,
+        sheenRoughness: 0.45,
+        sheenColor: '#9a6a3a',
+      },
+    },
+    standard: {
+      felt: { color: '#3a2514', roughness: 1 },
+      slit: { color: '#0d0805', roughness: 0.7 },
+    },
+    grain: { pieceLight: NO_GRAIN, pieceDark: NO_GRAIN },
+  }
+}
+
 /**
  * Frosted ice and deep sapphire-teal glass, one hue family. Figure-ground rule: white pieces are
  * the brightest thing on the board, light squares are mid-light frosted grey, dark squares are
@@ -212,9 +262,9 @@ function glacier(transmission: boolean): SetSpec {
             clearcoatRoughness: 0.04,
             sheen: 0.5,
             sheenRoughness: 0.35,
-            sheenColor: '#ffffff',
-            emissive: '#ffffff',
-            emissiveIntensity: 0.32,
+            sheenColor: '#e4f6f8',
+            emissive: '#bfe6ea',
+            emissiveIntensity: 0.1,
           }
         : {
             color: c.pieceLight,
@@ -223,9 +273,9 @@ function glacier(transmission: boolean): SetSpec {
             clearcoatRoughness: 0.05,
             sheen: 0.6,
             sheenRoughness: 0.35,
-            sheenColor: '#ffffff',
-            emissive: '#ffffff',
-            emissiveIntensity: 0.3,
+            sheenColor: '#e4f6f8',
+            emissive: '#bfe6ea',
+            emissiveIntensity: 0.1,
           },
       // Near-black teal glass: thick parts absorb almost fully, a cool sheen rim draws the outline.
       pieceDark: transmission
@@ -272,7 +322,7 @@ interface Store {
 }
 
 function apply(store: Store, set: BoardSet, transmission: boolean): void {
-  const spec = set === 'glacier' ? glacier(transmission) : atelier()
+  const spec = set === 'glacier' ? glacier(transmission) : set === 'wood' ? wood() : atelier()
   const physical = (key: PhysicalKey, m: THREE.MeshPhysicalMaterial) => {
     m.setValues({ ...PHYSICAL_DEFAULTS, ...spec.physical[key] })
     m.needsUpdate = true

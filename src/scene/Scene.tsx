@@ -39,7 +39,15 @@ interface Card {
 }
 
 /** Key overhead, side fill, cool rim, front ring. Glacier runs cool with a strong key, cyan rims and little fill, so glass and resin shade deeply. */
+const WARM_CARDS: readonly Card[] = [
+  { form: 'rect', intensity: 2.6, color: '#ffe9c8', position: [0, 6, 0], rotation: [Math.PI / 2, 0, 0], scale: [10, 6, 1] },
+  { form: 'rect', intensity: 1.3, color: '#ffd9a8', position: [-6, 3, 2], rotation: [0, Math.PI / 2, 0], scale: [8, 3, 1] },
+  { form: 'rect', intensity: 0.6, color: '#e6d6ff', position: [6, 2, -3], rotation: [0, -Math.PI / 2, 0], scale: [8, 2, 1] },
+  { form: 'ring', intensity: 1.4, color: '#fff4e0', position: [0, 4, 8], rotation: [0, 0, 0], scale: 3 },
+]
+
 const CARDS: Record<BoardSet, readonly Card[]> = {
+  wood: WARM_CARDS,
   atelier: [
     { form: 'rect', intensity: 2.4, color: '#fff4e2', position: [0, 6, 0], rotation: [Math.PI / 2, 0, 0], scale: [10, 6, 1] },
     { form: 'rect', intensity: 1.2, color: '#ffe6c4', position: [-6, 3, 2], rotation: [0, Math.PI / 2, 0], scale: [8, 3, 1] },

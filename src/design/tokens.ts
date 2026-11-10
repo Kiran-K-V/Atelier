@@ -80,10 +80,49 @@ const glacierPalette = {
   },
 } as const
 
-export const BOARD_SETS = ['glacier', 'atelier'] as const
+export const BOARD_SETS = ['wood', 'glacier', 'atelier'] as const
 export type BoardSet = (typeof BOARD_SETS)[number]
 
-export const palette = { atelier: atelierPalette, glacier: glacierPalette } as const
+
+// Wood: a walnut-and-maple board in a warm room. Solid warm-brown surfaces, honey accent.
+const woodPalette = {
+  dark: {
+    bg: '#120b07',
+    surface: '#1c120c',
+    surface2: '#261910',
+    surface3: '#322214',
+    line: 'rgba(245, 225, 195, 0.10)',
+    lineStrong: 'rgba(245, 225, 195, 0.22)',
+    text: '#f1e6d4',
+    textMuted: '#b0a08a',
+    textFaint: '#7a6a56',
+    accent: '#d49a4a',
+    accentStrong: '#efbf74',
+    accentInk: '#1c1006',
+    danger: '#e0614e',
+    success: '#86b57a',
+    focus: '#efbf74',
+  },
+  light: {
+    bg: '#f3ebdf',
+    surface: '#fbf6ee',
+    surface2: '#efe4d3',
+    surface3: '#e4d5bd',
+    line: 'rgba(40, 24, 10, 0.12)',
+    lineStrong: 'rgba(40, 24, 10, 0.24)',
+    text: '#25170b',
+    textMuted: '#6f5d48',
+    textFaint: '#9d8b73',
+    accent: '#9a5f1f',
+    accentStrong: '#7a4713',
+    accentInk: '#fbf3e6',
+    danger: '#b8412f',
+    success: '#3e7a4e',
+    focus: '#9a5f1f',
+  },
+} as const
+
+export const palette = { wood: woodPalette, atelier: atelierPalette, glacier: glacierPalette } as const
 
 export type ThemeName = keyof typeof atelierPalette
 export type ColorToken = keyof (typeof atelierPalette)['dark']
@@ -112,6 +151,23 @@ export interface SceneColors {
 }
 
 export const sceneSets: Record<BoardSet, SceneColors> = {
+  wood: {
+    squareLight: '#e2c08d',
+    squareDark: '#6a4024',
+    frame: '#2a170c',
+    brass: '#c9a35b',
+    glow: '#ffe9c4',
+    pieceLight: '#ecd5a8',
+    pieceDark: '#2b160c',
+    legal: '#f2c46a',
+    marker: '#e8a317',
+    selected: '#f2c46a',
+    lastMove: '#d9a441',
+    check: '#e0614e',
+    cursor: '#7fb3d9',
+    roomDark: '#150d08',
+    roomLight: '#d8c4a6',
+  },
   atelier: {
     squareLight: '#e8e2d6',
     squareDark: '#3a342e',
@@ -135,7 +191,7 @@ export const sceneSets: Record<BoardSet, SceneColors> = {
     frame: '#0b3550',
     brass: '#7ea9bb',
     glow: '#e6f6fb',
-    pieceLight: '#f5f9fb',
+    pieceLight: '#d3ecef',
     pieceDark: '#0a1f2d',
     legal: '#7fd3e6',
     marker: '#38b6d8',

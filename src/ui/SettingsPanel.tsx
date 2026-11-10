@@ -17,6 +17,7 @@ type SoundChoice = 'on' | 'off'
 type TacticsChoice = 'on' | 'off'
 
 const SETS: readonly { value: BoardSet; label: string }[] = [
+  { value: 'wood', label: 'Wood' },
   { value: 'glacier', label: 'Glacier' },
   { value: 'atelier', label: 'Atelier' },
 ]
@@ -77,7 +78,7 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
           <h2 className="atelier-display m-0 text-xl font-light text-text">Settings</h2>
           <Button variant="ghost" iconOnly aria-label="Close settings" onClick={onClose} className="-mr-2" icon={<CloseIcon />} />
         </div>
-        <Segmented legend="Board set" columns={2} options={SETS} value={s.boardSet} onChange={s.setBoardSet} />
+        <Segmented legend="Board set" columns={3} options={SETS} value={s.boardSet} onChange={s.setBoardSet} />
         <Segmented legend="Theme" columns={3} options={THEMES} value={s.theme} onChange={s.setTheme} />
         <div>
           <Segmented

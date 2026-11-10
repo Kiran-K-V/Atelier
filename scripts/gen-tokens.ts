@@ -13,6 +13,11 @@ const snow = (a: number) =>
 
 /** Per-set, per-theme CSS variables that are not palette colours. */
 const extras: Record<BoardSet, Record<ThemeName, Record<string, string>>> = {
+  // Wood, like atelier, has no page art and no glass: flat warm panels with a honey glow.
+  wood: {
+    dark: { 'glow-rgb': rgb(sceneSets.wood.brass), 'shadow-rgb': '0, 0, 0' },
+    light: { 'glow-rgb': rgb(sceneSets.wood.brass), 'shadow-rgb': '0, 0, 0' },
+  },
   // Atelier keeps its brass glow and plain black shadows; it has no page art and no glass.
   atelier: {
     dark: { 'glow-rgb': rgb(sceneSets.atelier.brass), 'shadow-rgb': '0, 0, 0' },
@@ -73,9 +78,10 @@ const themeBlock = [
   ...(Object.keys(ease) as (keyof typeof ease)[]).map((k) => `  --ease-${k}: ${cssBezier(k)};`),
 ].join('\n')
 
-// Glacier is the default set, so it matches whenever data-set is not 'atelier' (including before
+// Wood is the default set, so it matches whenever data-set is neither of the others (including before
 // the store sets the attribute). Each set then follows the theme: attribute first, else the OS.
-const setSelector = (set: BoardSet) => (set === 'glacier' ? ":root:not([data-set='atelier'])" : ":root[data-set='atelier']")
+const setSelector = (set: BoardSet) =>
+  set === 'wood' ? ":root:not([data-set='glacier']):not([data-set='atelier'])" : `:root[data-set='${set}']`
 
 const setCss = (set: BoardSet) => {
   const root = setSelector(set)
